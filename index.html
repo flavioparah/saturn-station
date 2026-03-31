@@ -7,7 +7,7 @@
     <style>
         :root {
             --neon: #00f2ff;
-            --bg: #010205; /* Preto espacial profundo */
+            --bg: #010205; 
             --panel: rgba(15, 23, 42, 0.9);
             --floor-grey: #64748b;
         }
@@ -46,21 +46,6 @@
             top: 0;
             left: 0;
             z-index: 1;
-        }
-
-        #stage::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(
-                rgba(18, 16, 16, 0) 0%, 
-                rgba(0, 0, 0, 0.15) 50%, 
-                rgba(18, 16, 16, 0) 100%
-            );
-            background-size: 100% 4px;
-            pointer-events: none;
-            z-index: 200;
-            opacity: 0.5;
         }
 
         #ui-top {
@@ -106,7 +91,7 @@
 
         .controls-container {
             position: absolute; 
-            bottom: 100px; /* Elevado de 60px para 100px conforme pedido */
+            bottom: 100px; 
             width: 100%;
             display: flex; 
             justify-content: center; 
@@ -133,8 +118,8 @@
         .nav-btn:active { background: var(--neon); color: black; }
 
         #portal-trigger {
-            width: 90px;
-            height: 90px;
+            width: 100px;
+            height: 100px;
             background: var(--neon);
             color: #000; 
             border: none;
@@ -152,18 +137,10 @@
             transform: scale(0);
             opacity: 0;
             line-height: 1.2;
+            text-align: center;
         }
         
         #portal-trigger.active { transform: scale(1); opacity: 1; }
-
-        #flash {
-            position: fixed; 
-            inset: 0;
-            background: var(--neon); 
-            opacity: 0;
-            pointer-events: none; 
-            z-index: 1000;
-        }
 
         .coords {
             position: absolute;
@@ -180,32 +157,28 @@
 </head>
 <body>
 
-<div id="flash"></div>
-
 <div id="stage">
     <div id="ui-top">
-        <div class="label">ESTAÇÃO ORBITAL</div>
-        <div class="value">ASTRUM-X // REV 23.0</div>
+        <div class="label">CONTROLO DE ACESSO</div>
+        <div class="value">STATUS: BLOQUEADO</div>
     </div>
 
     <div id="portal-info">
-        <div id="portal-name">SETOR ATIVO</div>
-        <div id="portal-desc">SISTEMA PRONTO</div>
+        <div id="portal-name">SECTOR</div>
+        <div id="portal-desc">AGUARDANDO INPUT</div>
     </div>
 
     <div class="controls-container">
         <div id="btn-left" class="nav-btn">◀</div>
-        <button id="portal-trigger"><b>ENTRAR<br>SETOR</b></button>
+        <button id="portal-trigger"><b>INICIAR<br>PUZZLE</b></button>
         <div id="btn-right" class="nav-btn">▶</div>
     </div>
 
     <div class="coords" id="pos-display">LAT: 0.000 // LNG: 0.000</div>
-
     <canvas id="game"></canvas>
 </div>
 
 <script>
-    // --- SISTEMA DE ÁUDIO ---
     let audioCtx = null;
 
     function ensureAudio() {
@@ -231,36 +204,12 @@
         osc.stop(audioCtx.currentTime + duration);
     }
 
-    function playDoorEffect(isOpen) {
-        if (!audioCtx) return;
-        ensureAudio();
-        const now = audioCtx.currentTime;
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = 'square';
-        if(isOpen) {
-            osc.frequency.setValueAtTime(80, now);
-            osc.frequency.exponentialRampToValueAtTime(220, now + 0.4);
-        } else {
-            osc.frequency.setValueAtTime(150, now);
-            osc.frequency.exponentialRampToValueAtTime(60, now + 0.3);
-        }
-        g.gain.setValueAtTime(0.05, now);
-        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
-        osc.connect(g);
-        g.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(now + 0.4);
-    }
-
-    // --- LÓGICA DO CANVAS ---
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const trigger = document.getElementById('portal-trigger');
     const pInfo = document.getElementById('portal-info');
     const pName = document.getElementById('portal-name');
     const pDesc = document.getElementById('portal-desc');
-    const flash = document.getElementById('flash');
     const posDisplay = document.getElementById('pos-display');
 
     let w, h, cx, cy, radius, thickness;
@@ -268,8 +217,8 @@
     let stationRotation = 0; 
     let velocity = 0;
     let input = 0;
-    let isWarping = false;
     let time = 0;
+    let currentActivePortal = null;
 
     const stars = Array.from({length: 150}, () => ({
         x: Math.random(), 
@@ -279,13 +228,14 @@
         pulse: Math.random() * 0.02
     }));
 
+    // isLocked: true significa que a porta não abre ao passar.
     const portals = [
-        { angle: 0, name: "NÚCLEO TÉRMICO", color: "#00f2ff", desc: "REATOR DE FUSÃO", state: 0, lastState: 0 },
-        { angle: (Math.PI*2)/6, name: "HABITAT", color: "#4ade80", desc: "SETOR RESIDENCIAL", state: 0, lastState: 0 },
-        { angle: ((Math.PI*2)/6)*2, name: "ESTALEIRO", color: "#fbbf24", desc: "HANGAR DE CARGA", state: 0, lastState: 0 },
-        { angle: ((Math.PI*2)/6)*3, name: "CRIO-LAB", color: "#a855f7", desc: "ZONA EXPERIMENTAL", state: 0, lastState: 0 },
-        { angle: ((Math.PI*2)/6)*4, name: "BIO-DOME", color: "#22c55e", desc: "RESERVAS DE OXIGÉNIO", state: 0, lastState: 0 },
-        { angle: ((Math.PI*2)/6)*5, name: "COMANDO", color: "#ff4444", desc: "PONTE DE OPERAÇÕES", state: 0, lastState: 0 }
+        { angle: 0, name: "NÚCLEO TÉRMICO", color: "#00f2ff", desc: "SISTEMA TRANCADO", state: 0, isLocked: true },
+        { angle: (Math.PI*2)/6, name: "HABITAT", color: "#4ade80", desc: "ACESSO NEGADO", state: 0, isLocked: true },
+        { angle: ((Math.PI*2)/6)*2, name: "ESTALEIRO", color: "#fbbf24", desc: "ZONA RESTRITA", state: 0, isLocked: true },
+        { angle: ((Math.PI*2)/6)*3, name: "CRIO-LAB", color: "#a855f7", desc: "BLOQUEIO ATIVO", state: 0, isLocked: true },
+        { angle: ((Math.PI*2)/6)*4, name: "BIO-DOME", color: "#22c55e", desc: "SISTEMA EM ESPERA", state: 0, isLocked: true },
+        { angle: ((Math.PI*2)/6)*5, name: "COMANDO", color: "#ff4444", desc: "ENCRIPTADO", state: 0, isLocked: true }
     ];
 
     function resize() {
@@ -302,7 +252,7 @@
             e.preventDefault(); 
             input = val; 
             ensureAudio();
-            playSynthSound(200 + Math.random()*50, 0.1, 0.02);
+            playSynthSound(150 + Math.random()*20, 0.1, 0.01);
         };
         const end = () => input = 0;
         el.addEventListener('mousedown', start);
@@ -314,18 +264,16 @@
     setupInput('btn-left', 1);   
     setupInput('btn-right', -1); 
 
+    // Função de clique no botão central (onde você chamará o puzzle)
     trigger.onclick = () => {
-        if(isWarping) return;
+        if(!currentActivePortal) return;
         ensureAudio();
-        isWarping = true;
-        playSynthSound(880, 0.3, 0.1, 'sine');
-        flash.style.transition = 'none';
-        flash.style.opacity = '1';
-        setTimeout(() => {
-            flash.style.transition = 'opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
-            flash.style.opacity = '0';
-            setTimeout(() => isWarping = false, 1200);
-        }, 50);
+        playSynthSound(440, 0.2, 0.05, 'square');
+        
+        // Exemplo: Simular que o puzzle abriu a porta (opcional)
+        // currentActivePortal.isLocked = false;
+        
+        console.log("Iniciando puzzle para:", currentActivePortal.name);
     };
 
     function drawAstronaut(t, vel) {
@@ -337,67 +285,62 @@
         else if (vel > 0.0001) ctx.scale(-1, 1);
         const s = (radius / 220); 
         ctx.scale(s, s);
+        
         const white = "#ffffff";
         const bodyGrey = "#cbd5e1";
         const helmetDark = "#0f172a";
         const highlight = "#00f2ff";
         
+        // Pernas
         ctx.save();
         ctx.translate(-5.5, -2);
         ctx.rotate(moving ? walkPhase * 0.6 : 0);
         ctx.fillStyle = bodyGrey;
         ctx.beginPath();
-        ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]); 
-        ctx.fill();
+        ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]); ctx.fill();
         ctx.restore();
         ctx.save();
         ctx.translate(5.5, -2);
         ctx.rotate(moving ? -walkPhase * 0.6 : 0);
         ctx.fillStyle = white;
         ctx.beginPath();
-        ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]);
-        ctx.fill();
+        ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]); ctx.fill();
         ctx.restore();
 
+        // Corpo
         ctx.save();
         const bounce = moving ? Math.abs(Math.sin(t * animSpeed)) * 1.2 : 0;
         ctx.translate(0, -bounce - 2);
         ctx.fillStyle = "#334155";
-        ctx.roundRect(-14, -28, 10, 24, 4);
-        ctx.fill();
+        ctx.roundRect(-14, -28, 10, 24, 4); ctx.fill();
         ctx.fillStyle = white;
-        ctx.roundRect(-12, -32, 24, 32, [8, 8, 4, 4]);
-        ctx.fill();
+        ctx.roundRect(-12, -32, 24, 32, [8, 8, 4, 4]); ctx.fill();
         ctx.fillStyle = highlight;
         ctx.globalAlpha = 0.5 + Math.sin(t*5)*0.5;
         ctx.fillRect(-5, -22, 10, 2);
         ctx.globalAlpha = 1;
 
+        // Braços
         ctx.save();
         ctx.translate(-10, -25);
         ctx.rotate(moving ? -walkPhase * 0.8 : 0.2);
         ctx.fillStyle = bodyGrey;
-        ctx.roundRect(-3.3, 0, 6.6, 19.8, 4);
-        ctx.fill();
+        ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill();
         ctx.restore();
         ctx.save();
         ctx.translate(10, -25);
         ctx.rotate(moving ? walkPhase * 0.8 : -0.2);
         ctx.fillStyle = white;
-        ctx.roundRect(-3.3, 0, 6.6, 19.8, 4);
-        ctx.fill();
+        ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill();
         ctx.restore();
 
+        // Capacete
         ctx.save();
         ctx.translate(0, -38);
         ctx.fillStyle = white;
-        ctx.beginPath();
-        ctx.arc(0, 0, 14, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = helmetDark;
-        ctx.beginPath();
-        ctx.ellipse(4, -1, 11, 8, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.ellipse(4, -1, 11, 8, 0, 0, Math.PI * 2); ctx.fill();
         ctx.restore(); 
         ctx.restore(); 
         ctx.restore(); 
@@ -406,62 +349,63 @@
     function drawPortal(p) {
         ctx.save();
         ctx.rotate(p.angle);
+        
+        const portalWidth = thickness * 0.55; 
         const normalizedPlayer = (playerAngle % (Math.PI*2) + (Math.PI*2)) % (Math.PI*2);
         const normalizedPortal = (p.angle % (Math.PI*2) + (Math.PI*2)) % (Math.PI*2);
-        let dist = Math.abs(normalizedPlayer - normalizedPortal);
-        if(dist > Math.PI) dist = Math.PI*2 - dist;
-        const isOver = dist < 0.25;
-        p.state = isOver ? Math.min(1, p.state + 0.035) : Math.max(0, p.state - 0.035);
-        if (p.state > 0.05 && p.lastState <= 0.05) playDoorEffect(true);
-        if (p.state < 0.05 && p.lastState >= 0.05) playDoorEffect(false);
-        p.lastState = p.state;
-        const portalWidth = thickness * 0.55; 
+        
+        // Detecção focada no PAINEL (deslocado da porta)
+        const panelOffset = 0.12; 
+        let distToPanel = Math.abs(normalizedPlayer - (normalizedPortal + panelOffset));
+        if(distToPanel > Math.PI) distToPanel = Math.PI*2 - distToPanel;
+        
+        const isNearPanel = distToPanel < 0.1;
 
-        // Painel Lateral de Controle
+        // Desenho do Painel Lateral
         ctx.save();
         ctx.translate(radius - thickness/2 + 20, portalWidth/2 + 12);
+        
+        // Feedback visual de interação no painel
+        if(isNearPanel) {
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = p.color;
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-4, -4, 18, 28);
+        }
+        
         ctx.fillStyle = "#1e293b";
-        ctx.beginPath(); ctx.roundRect(0, 0, 10, 20, 2); ctx.fill();
-        ctx.fillStyle = p.color; ctx.globalAlpha = 0.6 + Math.sin(time * 3) * 0.3;
+        ctx.beginPath(); 
+        ctx.roundRect(0, 0, 10, 20, 2); 
+        ctx.fill();
+        
+        ctx.fillStyle = isNearPanel ? p.color : "#334155";
+        ctx.globalAlpha = 0.6 + Math.sin(time * 5) * 0.4;
         ctx.fillRect(2, 4, 6, 4);
         ctx.restore();
 
-        // Novo: Contorno Brilhante da Cor do Botão quando aberto
-        if(p.state > 0.01) {
-            ctx.save();
-            ctx.shadowBlur = 10 * p.state;
-            ctx.shadowColor = p.color;
-            ctx.strokeStyle = p.color;
-            ctx.lineWidth = 2 * p.state;
-            ctx.globalAlpha = p.state * 0.8;
-            // Desenha o retângulo do contorno
-            ctx.strokeRect(radius - thickness/2, -portalWidth/2 - 2, thickness, portalWidth + 4);
-            ctx.restore();
-        }
+        // Porta (Trancada/State fixo em 0 se isLocked)
+        if (!p.isLocked) p.state = Math.min(1, p.state + 0.05);
+        else p.state = 0;
 
-        // Fundo Escuro do Vão
-        ctx.fillStyle = "#010205";
+        ctx.fillStyle = "#010205"; // Vão escuro
         ctx.fillRect(radius - thickness/2 + 2, -portalWidth/2, thickness - 4, portalWidth);
 
-        // Painéis da Porta Deslizantes
         ctx.save();
         ctx.beginPath(); ctx.rect(radius - thickness/2 + 2, -portalWidth/2, thickness - 4, portalWidth); ctx.clip();
         const slide = p.state * (portalWidth / 2);
-        ctx.fillStyle = "#1e293b";
+        ctx.fillStyle = "#1e293b"; // Cor da porta metal
         ctx.fillRect(radius - thickness/2 + 2, -portalWidth/2 - slide, thickness, portalWidth/2);
         ctx.fillRect(radius - thickness/2 + 2, 0 + slide, thickness, portalWidth/2);
         
-        // Detalhe de luz na borda da porta que abre
-        if(p.state > 0) {
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = p.state * 0.5;
-            ctx.fillRect(radius - thickness/2 + 2, -portalWidth/2 + slide - 1, thickness - 4, 2);
-            ctx.fillRect(radius - thickness/2 + 2, portalWidth/2 - slide - 1, thickness - 4, 2);
-        }
+        // Luzes de estado da porta
+        ctx.fillStyle = p.isLocked ? "#ff4444" : "#00f2ff";
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect(radius - thickness/2 + 2, -2, thickness - 4, 4);
         ctx.restore();
 
         ctx.restore();
-        return isOver;
+        return isNearPanel;
     }
 
     function loop() {
@@ -472,7 +416,6 @@
         velocity += input * 0.0012; 
         velocity *= 0.85; 
 
-        // Limpeza do frame
         ctx.clearRect(0, 0, w, h);
         ctx.fillStyle = "#010205";
         ctx.fillRect(0, 0, w, h);
@@ -495,18 +438,19 @@
         ctx.translate(cx, cy);
         ctx.rotate(stationRotation);
         
-        // Base Circular da Estação
         ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2);
         ctx.strokeStyle = "#0f172a"; ctx.lineWidth = thickness; ctx.stroke();
 
-        let activePortal = null; 
-        portals.forEach(p => { if(drawPortal(p)) activePortal = p; });
+        currentActivePortal = null; 
+        portals.forEach(p => { 
+            if(drawPortal(p)) currentActivePortal = p; 
+        });
 
-        // Trilhos de Contorno
+        // Detalhes estéticos
         ctx.beginPath(); ctx.arc(0, 0, radius + thickness/2, 0, Math.PI * 2);
         ctx.strokeStyle = "#64748b"; ctx.lineWidth = 6; ctx.stroke();
         ctx.beginPath(); ctx.arc(0, 0, radius - thickness/2, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(0, 242, 255, 0.3)"; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = "rgba(0, 242, 255, 0.2)"; ctx.lineWidth = 1; ctx.stroke();
 
         // Astronauta
         ctx.save();
@@ -516,16 +460,15 @@
         ctx.restore();
         ctx.restore();
 
-        // UI de Interação
-        if(activePortal) {
-            pName.innerText = activePortal.name; 
-            pName.style.color = activePortal.color;
-            pName.style.textShadow = `0 0 15px ${activePortal.color}`;
-            pDesc.innerText = activePortal.desc; 
+        // Interface
+        if(currentActivePortal) {
+            pName.innerText = currentActivePortal.name; 
+            pName.style.color = currentActivePortal.color;
+            pName.style.textShadow = `0 0 15px ${currentActivePortal.color}`;
+            pDesc.innerText = currentActivePortal.desc; 
             pInfo.classList.add('visible');
             trigger.classList.add('active');
-            trigger.style.background = activePortal.color;
-            trigger.style.boxShadow = `0 0 40px ${activePortal.color}66`;
+            trigger.style.background = currentActivePortal.color;
         } else {
             pInfo.classList.remove('visible'); 
             trigger.classList.remove('active');
