@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saturno Station - Acesso ao Comando</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #050a0f;
+            color: #4fe3ff;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            /* Centralização absoluta */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            width: 100vw;
+        }
+
+        /* Container para garantir que o objeto não quebre em telas pequenas */
+        .main-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+        }
+
+        .tablet-frame {
+            width: 380px;
+            height: 600px;
+            background: linear-gradient(135deg, #222 0%, #111 100%);
+            border: 4px solid #333;
+            border-radius: 20px;
+            position: relative;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(79, 227, 255, 0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-left: 15px solid #d4af37;
+            /* Garante que o tablet caiba em telas menores que sua largura nativa */
+            max-width: 95vw;
+            max-height: 90vh;
+        }
+
+        .screen {
+            background: radial-gradient(circle at center, #001a25 0%, #00080d 100%);
+            flex-grow: 1;
+            border-radius: 10px;
+            border: 1px solid rgba(79, 227, 255, 0.2);
+            position: relative;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .header-container {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .header {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #d4af37;
+            margin-bottom: 5px;
+        }
+
+        .message-box {
+            font-size: 0.7rem;
+            color: #ff4f4f;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            height: 15px;
+            transition: color 0.3s;
+        }
+
+        .core-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .core-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(79, 227, 255, 0.03);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(79, 227, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .core-row.active {
+            background: rgba(0, 255, 136, 0.05);
+            border-color: rgba(0, 255, 136, 0.3);
+        }
+
+        .ring {
+            width: 65px;
+            height: 65px;
+            border: 3px solid rgba(79, 227, 255, 0.2);
+            border-top-color: #4fe3ff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .indicator {
+            width: 12px;
+            height: 12px;
+            background: #ff4f4f;
+            border-radius: 50%;
+            position: absolute;
+            top: -7px;
+            box-shadow: 0 0 10px #ff4f4f;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .ring.active .indicator {
+            background: #00ff88;
+            box-shadow: 0 0 15px #00ff88;
+        }
+
+        .btn-panel {
+            margin-top: auto;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 260px;
+            height: 80px;
+            background: #1a1a1a;
+            border: 3px solid #333;
+            border-radius: 4px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+        }
+
+        .screw {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #444;
+            border-radius: 50%;
+            box-shadow: inset 1px 1px 2px #000, 1px 1px 1px rgba(255,255,255,0.1);
+        }
+        .screw-tl { top: 6px; left: 6px; }
+        .screw-tr { top: 6px; right: 6px; }
+        .screw-bl { bottom: 6px; left: 6px; }
+        .screw-br { bottom: 6px; right: 6px; }
+
+        .btn-content {
+            color: #444;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .btn-panel.ready {
+            border-color: #4fe3ff;
+            background: linear-gradient(to bottom, #1a2a30, #0a0f12);
+            box-shadow: 0 0 25px rgba(79, 227, 255, 0.2), inset 0 0 10px rgba(79, 227, 255, 0.1);
+        }
+
+        .btn-panel.ready .btn-content {
+            color: #4fe3ff;
+            text-shadow: 0 0 10px #4fe3ff;
+            animation: pulseText 2s infinite;
+        }
+
+        .hazard-stripes {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: repeating-linear-gradient(45deg, #333, #333 10px, #222 10px, #222 20px);
+            opacity: 0.5;
+        }
+
+        .btn-panel.ready .hazard-stripes {
+            background: repeating-linear-gradient(45deg, #d4af37, #d4af37 10px, #000 10px, #000 20px);
+            opacity: 1;
+        }
+
+        @keyframes pulseText {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .btn-panel:active {
+            transform: translateY(2px);
+            box-shadow: inset 0 0 20px #000;
+        }
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .scan-line {
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, rgba(79, 227, 255, 0.05), transparent);
+            position: absolute;
+            top: -100px;
+            left: 0;
+            animation: scan 6s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% { top: -100px; }
+            100% { top: 100%; }
+        }
+
+        /* Ajustes para telas muito pequenas (iPhone SE, etc) */
+        @media (max-height: 620px) {
+            .tablet-frame {
+                height: 540px;
+                padding: 10px;
+            }
+            .core-container {
+                gap: 15px;
+            }
+            .btn-panel {
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div class="tablet-frame">
+        <div class="screen">
+            <div class="scan-line"></div>
+            
+            <div class="header-container">
+                <div class="header">Comando Central - Porta 01</div>
+                <div class="message-box" id="msg">Sincronização necessária</div>
+            </div>
+            
+            <div class="core-container">
+                <div class="core-row" id="row-0">
+                    <span>NÚCLEO ALFA</span>
+                    <div class="ring" id="ring-0" onclick="rotate(0)">
+                        <div class="indicator"></div>
+                    </div>
+                </div>
+
+                <div class="core-row" id="row-1">
+                    <span>NÚCLEO BETA</span>
+                    <div class="ring" id="ring-1" onclick="rotate(1)">
+                        <div class="indicator"></div>
+                    </div>
+                </div>
+
+                <div class="core-row" id="row-2">
+                    <span>NÚCLEO GAMA</span>
+                    <div class="ring" id="ring-2" onclick="rotate(2)">
+                        <div class="indicator"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-panel" id="mainBtn" onclick="handleRedirection()">
+                <div class="screw screw-tl"></div>
+                <div class="screw screw-tr"></div>
+                <div class="screw screw-bl"></div>
+                <div class="screw screw-br"></div>
+                <div class="btn-content">Abrir Comando</div>
+                <div class="hazard-stripes"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Link apontando para um arquivo .html no GitHub
+    const SEU_LINK_AQUI = "https://seu-usuario.github.io/seu-repositorio/proxima_fase.html"; 
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(effect) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+
+        if (effect === 'rotate') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(900, now);
+            osc.frequency.exponentialRampToValueAtTime(300, now + 0.08);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.08);
+        } else if (effect === 'error') {
+            const masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+            const osc = audioCtx.createOscillator();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+            masterGain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            masterGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+            osc.connect(masterGain);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        } else if (effect === 'unlock') {
+            const masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+            masterGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            osc1.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc1.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+            osc2.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc2.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.15);
+            osc1.connect(masterGain);
+            osc2.connect(masterGain);
+            osc1.start(); osc2.start();
+            osc1.stop(audioCtx.currentTime + 0.2); osc2.stop(audioCtx.currentTime + 0.2);
+        } else if (effect === 'access') {
+            const masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+            masterGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < audioCtx.sampleRate * 2; i++) output[i] = Math.random() * 2 - 1;
+            const whiteNoise = audioCtx.createBufferSource();
+            whiteNoise.buffer = noiseBuffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1500, audioCtx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 1.5);
+            whiteNoise.connect(filter);
+            filter.connect(masterGain);
+            whiteNoise.start();
+            whiteNoise.stop(audioCtx.currentTime + 1.5);
+        }
+    }
+
+    let angles = [90, 180, 270];
+    let isUnlocked = false;
+
+    function updateDisplay() {
+        let allCorrect = true;
+        angles.forEach((angle, i) => {
+            const ring = document.getElementById(`ring-${i}`);
+            const row = document.getElementById(`row-${i}`);
+            ring.style.transform = `rotate(${angle}deg)`;
+            if (angle % 360 === 0) {
+                ring.classList.add('active');
+                row.classList.add('active');
+            } else {
+                ring.classList.remove('active');
+                row.classList.remove('active');
+                allCorrect = false;
+            }
+        });
+
+        const msg = document.getElementById('msg');
+        const mainBtn = document.getElementById('mainBtn');
+
+        if (allCorrect && !isUnlocked) {
+            isUnlocked = true;
+            msg.innerText = "ACESSO AUTORIZADO";
+            msg.style.color = "#00ff88";
+            mainBtn.classList.add('ready');
+            playSound('unlock');
+        } else if (!allCorrect) {
+            isUnlocked = false;
+            msg.innerText = "Sincronização necessária";
+            msg.style.color = "#ff4f4f";
+            mainBtn.classList.remove('ready');
+        }
+    }
+
+    function rotate(index) {
+        playSound('rotate');
+        if (index === 0) { angles[0] += 90; angles[1] += 90; }
+        else if (index === 1) { angles[1] += 90; angles[2] += 90; }
+        else if (index === 2) { angles[2] += 90; angles[0] += 90; }
+        updateDisplay();
+    }
+
+    function handleRedirection() {
+        const btn = document.getElementById('mainBtn');
+        if (btn.classList.contains('ready')) {
+            playSound('access');
+            btn.style.borderColor = "#00ff88";
+            document.getElementById('msg').innerText = "CARREGANDO INTERFACE...";
+            setTimeout(() => {
+                window.location.href = https://github.com/flavioparah/saturn-station/blob/main/yellow-door-open.html;
+            }, 1200);
+        } else {
+            playSound('error');
+            btn.classList.add('shake');
+            setTimeout(() => btn.classList.remove('shake'), 400);
+        }
+    }
+
+    updateDisplay();
+</script>
+
+</body>
+</html>
+
