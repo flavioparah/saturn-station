@@ -298,11 +298,20 @@
     setupInput('btn-left', 1);   
     setupInput('btn-right', -1); 
 
-    // Configuração de Teclado (A, D e Setas)
+    // Configuração de Teclado (A, D, Setas e ENTER)
     window.addEventListener('keydown', (e) => {
         ensureAudio();
+        // Movimento
         if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
         if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+        
+        // Ação Central (Enter)
+        if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+            if (trigger.classList.contains('active')) {
+                trigger.click(); // Simula o clique no botão
+            }
+        }
+        
         updateKeyboardInput();
     });
 
@@ -318,6 +327,7 @@
         else input = 0;
     }
 
+    // Função de ação do portal
     trigger.onclick = () => {
         if(!currentActivePortal) return;
         ensureAudio();
