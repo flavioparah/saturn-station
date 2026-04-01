@@ -191,28 +191,25 @@
 
     let w, h, cx, cy, ringRadius, ringWidth;
     
-    // POSIÇÃO INICIAL: Math.PI/4 corresponde ao ACESSO AO ELEVADOR no array modules
     let playerAngle = Math.PI / 4; 
-    
     let stationRot = 0;
     let playerVel = 0;
     let input = 0;
     let time = 0;
     let stars = [];
     
-    // Estados das portas
     let dockDoorState = 0;
     let liftDoorState = 0;
 
-    // Definição dos módulos
+    // Definição dos módulos com o link atualizado
     const modules = [
-        { angle: 0, name: "NAVE ACOPLADA", desc: "Acesso direto à Gunship Classe-S. Escotilha de pressurização aberta para embarque.", color: "#fbbf24", type: "dock_door", link: "#" },
+        { angle: 0, name: "NAVE ACOPLADA", desc: "Acesso direto à Gunship Classe-S. Escotilha de pressurização aberta para embarque.", color: "#fbbf24", type: "dock_door", link: "cole_aqui_arquivo.html" },
         { angle: Math.PI/4, name: "ACESSO AO ELEVADOR", desc: "Porta de elevação industrial automática para trânsito de pessoal entre setores.", color: "#fbbf24", type: "rect_door", link: "yellow-door-open.html" },
-        { angle: Math.PI/2, name: "ANTENA DE LONGO ALCANCE", desc: "Comunicação quântica inter-setorial ativa. Sincronizando dados com a frota orbital.", color: "#22d3ee", type: "antenna", link: "#" },
-        { angle: (Math.PI/3)*2, name: "UNIDADE DE ARMAZENAMENTO", desc: "Container industrial reforçado com travas magnéticas.", color: "#94a3b8", type: "cargo", link: "#" },
-        { angle: Math.PI, name: "MATRIZ DE SENSORES", desc: "Varredura multiespectral de alta precisão com radar rotativo ativo.", color: "#ef4444", type: "sensor", link: "#" },
-        { angle: (Math.PI/3)*4, name: "BOBINA DE ENERGIA", desc: "Supercondutor magnético. Distribuição de carga de plasma para a estação.", color: "#22d3ee", type: "coil", link: "#" },
-        { angle: (Math.PI/3)*5, name: "COMPRESSOR DE OXIGÊNIO", desc: "Módulo criogênico de alta pressão. Garante atmosfera respirável em todo o setor.", color: "#22d3ee", type: "tank", link: "#" }
+        { angle: Math.PI/2, name: "ANTENA DE LONGO ALCANCE", desc: "Comunicação quântica inter-setorial ativa. Sincronizando dados com a frota orbital.", color: "#22d3ee", type: "antenna", link: "cole_aqui_arquivo.html" },
+        { angle: (Math.PI/3)*2, name: "UNIDADE DE ARMAZENAMENTO", desc: "Container industrial reforçado com travas magnéticas.", color: "#94a3b8", type: "cargo", link: "cole_aqui_arquivo.html" },
+        { angle: Math.PI, name: "MATRIZ DE SENSORES", desc: "Varredura multiespectral de alta precisão com radar rotativo ativo.", color: "#ef4444", type: "sensor", link: "cole_aqui_arquivo.html" },
+        { angle: (Math.PI/3)*4, name: "BOBINA DE ENERGIA", desc: "Supercondutor magnético. Distribuição de carga de plasma para a estação.", color: "#22d3ee", type: "coil", link: "cole_aqui_arquivo.html" },
+        { angle: (Math.PI/3)*5, name: "COMPRESSOR DE OXIGÊNIO", desc: "Módulo criogênico de alta pressão. Garante atmosfera respirável em todo o setor.", color: "#22d3ee", type: "tank", link: "cole_aqui_arquivo.html" }
     ];
 
     let currentActiveModule = null;
@@ -236,6 +233,17 @@
         }
     }
 
+    // Função centralizada para executar a ação
+    function triggerAction() {
+        if (currentActiveModule && currentActiveModule.link) {
+            // Pequeno feedback visual antes de mudar de página
+            actBtn.style.transform = "scale(0.9)";
+            setTimeout(() => {
+                window.location.href = currentActiveModule.link;
+            }, 100);
+        }
+    }
+
     // Configuração de inputs
     const setInput = (id, val) => {
         const el = document.getElementById(id);
@@ -247,10 +255,16 @@
     setInput('btn-left', 0.0012); 
     setInput('btn-right', -0.0012);
 
+    // Adicionado o listener para a tecla ENTER e teclas de movimento
     window.addEventListener('keydown', (e) => {
         const key = e.key.toLowerCase();
         if (key === 'a' || key === 'arrowleft') input = 0.0012;
         if (key === 'd' || key === 'arrowright') input = -0.0012;
+        
+        // Função de apertar enter para acionar o botão
+        if (e.key === 'Enter') {
+            triggerAction();
+        }
     });
 
     window.addEventListener('keyup', (e) => {
@@ -259,11 +273,8 @@
         if ((key === 'd' || key === 'arrowright') && input < 0) input = 0;
     });
 
-    actBtn.addEventListener('click', () => {
-        if (currentActiveModule && currentActiveModule.link) {
-            console.log("Interagindo com:", currentActiveModule.name);
-        }
-    });
+    // Clique no botão de ação
+    actBtn.addEventListener('click', triggerAction);
 
     function drawStars() {
         ctx.save();
