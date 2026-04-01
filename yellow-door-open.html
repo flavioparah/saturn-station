@@ -239,15 +239,20 @@
 
     let w, h, cx, cy, radius, thickness;
     
-    // POSIÇÃO INICIAL: Agora ajustada para alinhar com o Estaleiro (portal amarela)
-    // Ângulo do Estaleiro é ((Math.PI * 2) / 6) * 2. 
+    // POSIÇÃO INICIAL: Alinhada com o Estaleiro (portal amarelo)
     let playerAngle = ((Math.PI * 2) / 6) * 2; 
     
     let stationRotation = 0; 
     let velocity = 0;
-    let input = 0;
+    let input = 0; // Armazena a direção do movimento (-1, 0, 1)
     let time = 0;
     let currentActivePortal = null;
+
+    // Estado das teclas para movimento suave
+    const keys = {
+        left: false,
+        right: false
+    };
 
     const stars = Array.from({length: 150}, () => ({
         x: Math.random(), 
@@ -258,12 +263,12 @@
     }));
 
     const portals = [
-        { angle: 0, name: "NÚCLEO TÉRMICO", color: "#00f2ff", desc: "SISTEMA TRANCADO", state: 0, isLocked: true, url: "#" },
-        { angle: (Math.PI*2)/6, name: "HABITAT", color: "#4ade80", desc: "ACESSO NEGADO", state: 0, isLocked: true, url: "#" },
+        { angle: 0, name: "NÚCLEO TÉRMICO", color: "#00f2ff", desc: "SISTEMA TRANCADO", state: 0, isLocked: true, url: "nucleo_termico.html" },
+        { angle: (Math.PI*2)/6, name: "HABITAT", color: "#4ade80", desc: "ACESSO NEGADO", state: 0, isLocked: true, url: "habitat.html" },
         { id: 'estaleiro', angle: ((Math.PI*2)/6)*2, name: "ESTALEIRO", color: "#fbbf24", desc: "ACESSO LIVRE", state: 0, isLocked: false, url: "estaleiro.html" },
-        { angle: ((Math.PI*2)/6)*3, name: "CRIO-LAB", color: "#a855f7", desc: "BLOQUEIO ATIVO", state: 0, isLocked: true, url: "#" },
-        { angle: ((Math.PI*2)/6)*4, name: "BIO-DOME", color: "#22c55e", desc: "SISTEMA EM ESPERA", state: 0, isLocked: true, url: "#" },
-        { angle: ((Math.PI*2)/6)*5, name: "COMANDO", color: "#ff4444", desc: "ENCRIPTADO", state: 0, isLocked: true, url: "#" }
+        { angle: ((Math.PI*2)/6)*3, name: "CRIO-LAB", color: "#a855f7", desc: "BLOQUEIO ATIVO", state: 0, isLocked: true, url: "crio_lab.html" },
+        { angle: ((Math.PI*2)/6)*4, name: "BIO-DOME", color: "#22c55e", desc: "SISTEMA EM ESPERA", state: 0, isLocked: true, url: "bio_dome.html" },
+        { angle: ((Math.PI*2)/6)*5, name: "COMANDO", color: "#ff4444", desc: "ENCRIPTADO", state: 0, isLocked: true, url: "comando.html" }
     ];
 
     function resize() {
@@ -274,6 +279,7 @@
         thickness = radius * 0.45; 
     }
 
+    // Configuração de inputs (Mouse/Touch)
     const setupInput = (id, val) => {
         const el = document.getElementById(id);
         const start = (e) => { 
@@ -282,7 +288,7 @@
             ensureAudio();
             playSynthSound(150 + Math.random()*20, 0.1, 0.01);
         };
-        const end = () => input = 0;
+        const end = () => { if(input === val) input = 0; };
         el.addEventListener('mousedown', start);
         el.addEventListener('touchstart', start, {passive: false});
         window.addEventListener('mouseup', end);
@@ -292,6 +298,26 @@
     setupInput('btn-left', 1);   
     setupInput('btn-right', -1); 
 
+    // Configuração de Teclado (A, D e Setas)
+    window.addEventListener('keydown', (e) => {
+        ensureAudio();
+        if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
+        if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+        updateKeyboardInput();
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
+        if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
+        updateKeyboardInput();
+    });
+
+    function updateKeyboardInput() {
+        if (keys.left && !keys.right) input = 1;
+        else if (keys.right && !keys.left) input = -1;
+        else input = 0;
+    }
+
     trigger.onclick = () => {
         if(!currentActivePortal) return;
         ensureAudio();
@@ -299,6 +325,8 @@
         
         if (currentActivePortal.isLocked) {
             console.log("Iniciando puzzle para:", currentActivePortal.name);
+            // Aqui você pode redirecionar para uma página de puzzle ou abrir um modal
+            // window.location.href = "puzzle_" + currentActivePortal.id + ".html";
         } else {
             if (currentActivePortal.url && currentActivePortal.url !== "#") {
                 window.location.href = currentActivePortal.url;
@@ -554,4 +582,3 @@
 
 </body>
 </html>
-
