@@ -152,12 +152,23 @@
             letter-spacing: 2px;
             white-space: nowrap;
         }
+
+        #audio-hint {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 10px;
+            color: var(--neon-cyan);
+            opacity: 0.5;
+            z-index: 200;
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
 <div id="stage">
+    <div id="audio-hint">CLIQUE EM QUALQUER LUGAR PARA ATIVAR O ÁUDIO</div>
     <canvas id="game"></canvas>
 
     <div id="ui-overlay">
@@ -182,6 +193,170 @@
 </div>
 
 <script>
+    // --- MOTOR DE ÁUDIO PROCEDURAL ATUALIZADO ---
+    class SpaceStationAudio {
+        constructor() {
+            this.ctx = null;
+            this.initialized = false;
+            this.nodes = {};
+        }
+
+        init() {
+            if (this.initialized) return;
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.setupAmbience();
+            this.setupOxygenCompressor();
+            this.setupSensorArray();
+            this.initialized = true;
+            document.getElementById('audio-hint').style.display = 'none';
+        }
+
+        setupAmbience() {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+            osc.type = 'sawtooth';
+            osc.frequency.value = 55; 
+            filter.type = 'lowpass';
+            filter.frequency.value = 100;
+            gain.gain.value = 0.05;
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+        }
+
+        setupOxygenCompressor() {
+            const bufferSize = 2 * this.ctx.sampleRate;
+            const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = noiseBuffer;
+            noise.loop = true;
+            const noiseFilter = this.ctx.createBiquadFilter();
+            noiseFilter.type = 'bandpass';
+            noiseFilter.frequency.value = 1200;
+            noiseFilter.Q.value = 1;
+            this.oxyGain = this.ctx.createGain();
+            this.oxyGain.gain.value = 0; 
+            noise.connect(noiseFilter);
+            noiseFilter.connect(this.oxyGain);
+            this.oxyGain.connect(this.ctx.destination);
+            noise.start();
+            this.beatGain = this.ctx.createGain();
+            this.beatGain.gain.value = 0;
+            this.beatGain.connect(this.ctx.destination);
+        }
+
+        setupSensorArray() {
+            // Hum de dados (Sensor Hum)
+            this.sensorGain = this.ctx.createGain();
+            this.sensorGain.gain.value = 0;
+            
+            // Filtro para o som de varredura multiespectral
+            this.sensorFilter = this.ctx.createBiquadFilter();
+            this.sensorFilter.type = 'bandpass';
+            this.sensorFilter.frequency.value = 2000;
+            this.sensorFilter.Q.value = 5;
+
+            // Oscilador de varredura
+            this.sensorOsc = this.ctx.createOscillator();
+            this.sensorOsc.type = 'sine';
+            this.sensorOsc.frequency.value = 440;
+            
+            // Modulador FM para textura industrial
+            const mod = this.ctx.createOscillator();
+            const modGain = this.ctx.createGain();
+            mod.type = 'square';
+            mod.frequency.value = 15;
+            modGain.gain.value = 100;
+            
+            mod.connect(modGain);
+            modGain.connect(this.sensorOsc.frequency);
+            this.sensorOsc.connect(this.sensorFilter);
+            this.sensorFilter.connect(this.sensorGain);
+            this.sensorGain.connect(this.ctx.destination);
+            
+            this.sensorOsc.start();
+            mod.start();
+        }
+
+        playSensorPing() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            const f = this.ctx.createBiquadFilter();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(2500, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.1);
+            
+            f.type = 'lowpass';
+            f.frequency.value = 2000;
+            
+            g.gain.setValueAtTime(0.08, this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+            
+            osc.connect(f);
+            f.connect(g);
+            g.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.3);
+        }
+
+        playBeat() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.frequency.setValueAtTime(60, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(10, this.ctx.currentTime + 0.3);
+            g.gain.setValueAtTime(0.1, this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+            osc.connect(g);
+            g.connect(this.beatGain);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.5);
+        }
+
+        playUI() {
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.frequency.setValueAtTime(1200, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.05);
+            g.gain.setValueAtTime(0.05, this.ctx.currentTime);
+            g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.05);
+            osc.connect(g);
+            g.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.1);
+        }
+
+        updateOxygen(distance) {
+            if (!this.initialized) return;
+            const volume = Math.pow(distance, 2) * 0.2;
+            this.oxyGain.gain.setTargetAtTime(volume, this.ctx.currentTime, 0.1);
+            this.beatGain.gain.setTargetAtTime(distance * 0.5, this.ctx.currentTime, 0.1);
+        }
+
+        updateSensorAudio(distance, rotationTime) {
+            if (!this.initialized) return;
+            // Volume baseado na proximidade
+            const volume = Math.pow(distance, 2) * 0.15;
+            this.sensorGain.gain.setTargetAtTime(volume, this.ctx.currentTime, 0.1);
+            
+            // Filtro baseado na fase da rotação (efeito radar)
+            const sweep = Math.sin(rotationTime * 2) * 1000 + 1500;
+            this.sensorFilter.frequency.setTargetAtTime(sweep, this.ctx.currentTime, 0.05);
+        }
+    }
+
+    const sfx = new SpaceStationAudio();
+
+    // --- LÓGICA DO JOGO ---
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const mCard = document.getElementById('module-card');
@@ -190,18 +365,18 @@
     const actBtn = document.getElementById('action-btn');
 
     let w, h, cx, cy, ringRadius, ringWidth;
-    
     let playerAngle = Math.PI / 4; 
     let stationRot = 0;
     let playerVel = 0;
     let input = 0;
     let time = 0;
     let stars = [];
+    let lastBeatTime = 0;
+    let lastSensorPingTime = 0;
     
     let dockDoorState = 0;
     let liftDoorState = 0;
 
-    // Definição dos módulos com o link atualizado
     const modules = [
         { angle: 0, name: "NAVE ACOPLADA", desc: "Acesso direto à Gunship Classe-S. Escotilha de pressurização aberta para embarque.", color: "#fbbf24", type: "dock_door", link: "cole_aqui_arquivo.html" },
         { angle: Math.PI/4, name: "ACESSO AO ELEVADOR", desc: "Porta de elevação industrial automática para trânsito de pessoal entre setores.", color: "#fbbf24", type: "rect_door", link: "yellow-door-open.html" },
@@ -220,7 +395,6 @@
         cx = w / 2; cy = h / 2;
         ringRadius = Math.min(w, h) * 0.25; 
         ringWidth = ringRadius * 0.65;
-
         if(stars.length === 0) {
             for(let i=0; i<300; i++) {
                 stars.push({
@@ -233,38 +407,30 @@
         }
     }
 
-    // Função centralizada para executar a ação
     function triggerAction() {
+        sfx.init();
+        sfx.playUI();
         if (currentActiveModule && currentActiveModule.link) {
-            // Pequeno feedback visual antes de mudar de página
             actBtn.style.transform = "scale(0.9)";
-            setTimeout(() => {
-                window.location.href = currentActiveModule.link;
-            }, 100);
+            setTimeout(() => { window.location.href = currentActiveModule.link; }, 100);
         }
     }
 
-    // Configuração de inputs
     const setInput = (id, val) => {
         const el = document.getElementById(id);
-        const start = (e) => { e.preventDefault(); input = val; };
+        const start = (e) => { e.preventDefault(); sfx.init(); input = val; sfx.playUI(); };
         const end = () => { if(input === val) input = 0; };
         el.addEventListener('mousedown', start); el.addEventListener('touchstart', start, {passive: false});
         window.addEventListener('mouseup', end); window.addEventListener('touchend', end);
     };
-    setInput('btn-left', 0.0012); 
-    setInput('btn-right', -0.0012);
+    setInput('btn-left', 0.0012); setInput('btn-right', -0.0012);
 
-    // Adicionado o listener para a tecla ENTER e teclas de movimento
     window.addEventListener('keydown', (e) => {
+        sfx.init();
         const key = e.key.toLowerCase();
         if (key === 'a' || key === 'arrowleft') input = 0.0012;
         if (key === 'd' || key === 'arrowright') input = -0.0012;
-        
-        // Função de apertar enter para acionar o botão
-        if (e.key === 'Enter') {
-            triggerAction();
-        }
+        if (e.key === 'Enter') triggerAction();
     });
 
     window.addEventListener('keyup', (e) => {
@@ -273,57 +439,41 @@
         if ((key === 'd' || key === 'arrowright') && input < 0) input = 0;
     });
 
-    // Clique no botão de ação
     actBtn.addEventListener('click', triggerAction);
+    window.addEventListener('click', () => sfx.init());
 
     function drawStars() {
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(stationRot * 0.5);
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(stationRot * 0.5);
         stars.forEach(s => {
             const flicker = 0.7 + Math.sin(time * 3 + s.x) * 0.3;
             ctx.fillStyle = `rgba(255, 255, 255, ${s.o * flicker})`;
-            ctx.beginPath();
-            ctx.arc(s.x, s.y, s.s, 0, Math.PI*2);
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI*2); ctx.fill();
         });
         ctx.restore();
     }
 
     function drawGunship(xOffset) {
-        ctx.save();
-        ctx.translate(xOffset, 0);
+        ctx.save(); ctx.translate(xOffset, 0);
         const pulse = 0.5 + Math.sin(time * 3) * 0.5;
         ctx.fillStyle = "#fbbf24"; ctx.strokeStyle = "#b45309"; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(0, -20); ctx.bezierCurveTo(40, -25, 60, -15, 75, 0); 
-        ctx.bezierCurveTo(60, 15, 40, 25, 0, 20); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -20); ctx.bezierCurveTo(40, -25, 60, -15, 75, 0); ctx.bezierCurveTo(60, 15, 40, 25, 0, 20); ctx.closePath(); ctx.fill(); ctx.stroke();
         ctx.fillStyle = "#22d3ee"; ctx.beginPath(); ctx.ellipse(45, 0, 12, 8, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#fbbf24";
-        ctx.beginPath(); ctx.arc(15, -18, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#fbbf24"; ctx.beginPath(); ctx.arc(15, -18, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         ctx.beginPath(); ctx.arc(15, 18, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#1e293b";
-        ctx.beginPath(); ctx.arc(15, -18, 4, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(15, 18, 4, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = `rgba(34, 211, 238, ${0.3 * pulse})`;
-        ctx.beginPath(); ctx.arc(15, -18, 6 * pulse, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(15, 18, 6 * pulse, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#d97706";
-        ctx.beginPath(); ctx.moveTo(5, -12); ctx.lineTo(-8, -22); ctx.lineTo(8, -18); ctx.closePath(); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(5, 12); ctx.lineTo(-8, 22); ctx.lineTo(8, 18); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#1e293b"; ctx.beginPath(); ctx.arc(15, -18, 4, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(15, 18, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(34, 211, 238, ${0.3 * pulse})`; ctx.beginPath(); ctx.arc(15, -18, 6 * pulse, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(15, 18, 6 * pulse, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#d97706"; ctx.beginPath(); ctx.moveTo(5, -12); ctx.lineTo(-8, -22); ctx.lineTo(8, -18); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(5, 12); ctx.lineTo(-8, 22); ctx.lineTo(8, 18); ctx.closePath(); ctx.fill();
         ctx.restore();
     }
 
     function drawModule(m, isActive) {
-        ctx.save();
-        ctx.rotate(m.angle);
+        ctx.save(); ctx.rotate(m.angle);
         const outer = ringRadius + ringWidth/2;
         const inner = ringRadius - ringWidth/2;
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = m.color;
+        ctx.lineWidth = 2; ctx.strokeStyle = m.color;
 
         if(m.type === "dock_door") {
-            ctx.fillStyle = "#1e293b"; ctx.fillRect(outer - 8, -45, 20, 90);
-            ctx.strokeStyle = "#475569"; ctx.strokeRect(outer - 8, -45, 20, 90);
+            ctx.fillStyle = "#1e293b"; ctx.fillRect(outer - 8, -45, 20, 90); ctx.strokeStyle = "#475569"; ctx.strokeRect(outer - 8, -45, 20, 90);
             if(isActive) dockDoorState = Math.min(1, dockDoorState + 0.05); else dockDoorState = Math.max(0, dockDoorState - 0.05);
             const doorOffset = dockDoorState * 35;
             ctx.fillStyle = "#fbbf24"; ctx.fillRect(outer - 5, -40 - doorOffset, 15, 40); ctx.fillRect(outer - 5, 0 + doorOffset, 15, 40);
@@ -332,59 +482,36 @@
                 ctx.beginPath(); ctx.moveTo(outer-5, -35 - doorOffset + i*8); ctx.lineTo(outer+10, -30 - doorOffset + i*8); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(outer-5, 5 + doorOffset + i*8); ctx.lineTo(outer+10, 10 + doorOffset + i*8); ctx.stroke();
             }
-            ctx.fillStyle = isActive ? "#22c55e" : "#ef4444";
-            ctx.beginPath(); ctx.arc(outer + 12, -40, 3, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(outer + 12, 40, 3, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = isActive ? "#22c55e" : "#ef4444"; ctx.beginPath(); ctx.arc(outer + 12, -40, 3, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(outer + 12, 40, 3, 0, Math.PI*2); ctx.fill();
             drawGunship(outer + 12);
         } else if(m.type === "rect_door") {
-            ctx.fillStyle = "#020617";
-            ctx.fillRect(inner + 5, -20, 35, 40);
-            if(isActive) {
-                const p = liftDoorState;
-                ctx.fillStyle = `rgba(34, 211, 238, ${p * 0.4})`;
-                ctx.fillRect(inner + 5, -20, 35, 40);
-            }
+            ctx.fillStyle = "#020617"; ctx.fillRect(inner + 5, -20, 35, 40);
+            if(isActive) { ctx.fillStyle = `rgba(34, 211, 238, ${liftDoorState * 0.4})`; ctx.fillRect(inner + 5, -20, 35, 40); }
             if(isActive) liftDoorState = Math.min(1, liftDoorState + 0.05); else liftDoorState = Math.max(0, liftDoorState - 0.05);
             const liftOffset = liftDoorState * 38;
-            ctx.save();
-            ctx.beginPath(); ctx.rect(inner + 5, -60, 35, 80); ctx.clip();
-            ctx.fillStyle = "rgba(30, 41, 59, 1)"; ctx.strokeStyle = m.color; ctx.lineWidth = 2;
-            ctx.fillRect(inner + 5, -20 - liftOffset, 35, 40); ctx.strokeRect(inner + 5, -20 - liftOffset, 35, 40);
-            ctx.strokeStyle = "rgba(255,255,255,0.1)";
-            for(let i=1; i<4; i++) {
-                ctx.beginPath(); ctx.moveTo(inner+10, -20 - liftOffset + i*10); ctx.lineTo(inner+35, -20 - liftOffset + i*10); ctx.stroke();
-            }
-            ctx.fillStyle = isActive ? "#22c55e" : "#fbbf24"; ctx.fillRect(inner + 30, -5 - liftOffset, 6, 10);
-            ctx.restore();
+            ctx.save(); ctx.beginPath(); ctx.rect(inner + 5, -60, 35, 80); ctx.clip(); ctx.fillStyle = "rgba(30, 41, 59, 1)"; ctx.strokeStyle = m.color; ctx.lineWidth = 2; ctx.fillRect(inner + 5, -20 - liftOffset, 35, 40); ctx.strokeRect(inner + 5, -20 - liftOffset, 35, 40);
+            ctx.strokeStyle = "rgba(255,255,255,0.1)"; for(let i=1; i<4; i++) { ctx.beginPath(); ctx.moveTo(inner+10, -20 - liftOffset + i*10); ctx.lineTo(inner+35, -20 - liftOffset + i*10); ctx.stroke(); }
+            ctx.fillStyle = isActive ? "#22c55e" : "#fbbf24"; ctx.fillRect(inner + 30, -5 - liftOffset, 6, 10); ctx.restore();
             ctx.strokeStyle = "#475569"; ctx.lineWidth = 3; ctx.strokeRect(inner + 5, -20, 35, 40);
         } else if(m.type === "antenna") {
             const pulse = 0.5 + Math.sin(time * 3) * 0.5;
-            ctx.strokeStyle = "#475569"; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(outer, -15); ctx.lineTo(outer+25, -10); ctx.lineTo(outer+25, 10); ctx.lineTo(outer, 15); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(outer, 0); ctx.lineTo(outer+25, 0); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(outer+12, -12); ctx.lineTo(outer+12, 12); ctx.stroke();
-            ctx.save(); ctx.translate(outer + 45, 0); ctx.fillStyle = "rgba(30, 41, 59, 0.8)"; ctx.strokeStyle = m.color; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(-15, 0, 35, -Math.PI/3, Math.PI/3); ctx.stroke();
-            for(let i=-2; i<=2; i++) {
-                ctx.beginPath(); ctx.moveTo(-15, 0); const a = i * 0.4;
-                ctx.lineTo(-15 + Math.cos(a)*35, Math.sin(a)*35); ctx.stroke();
-            }
-            ctx.strokeStyle = "#94a3b8"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(15, 0); ctx.stroke();
-            ctx.fillStyle = m.color; ctx.fillRect(15, -6, 4, 12);
-            if(isActive) {
-                ctx.strokeStyle = m.color; ctx.globalAlpha = 1 - pulse;
-                ctx.beginPath(); ctx.arc(25 + pulse*20, 0, 5 + pulse*15, -0.5, 0.5); ctx.stroke();
-                ctx.beginPath(); ctx.arc(35 + pulse*20, 0, 10 + pulse*20, -0.6, 0.6); ctx.stroke();
-                ctx.globalAlpha = 1;
-                ctx.fillStyle = pulse > 0.5 ? m.color : "#000"; ctx.beginPath(); ctx.arc(17, 0, 2, 0, Math.PI*2); ctx.fill();
-            }
+            ctx.strokeStyle = "#475569"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(outer, -15); ctx.lineTo(outer+25, -10); ctx.lineTo(outer+25, 10); ctx.lineTo(outer, 15); ctx.stroke(); ctx.beginPath(); ctx.moveTo(outer, 0); ctx.lineTo(outer+25, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(outer+12, -12); ctx.lineTo(outer+12, 12); ctx.stroke();
+            ctx.save(); ctx.translate(outer + 45, 0); ctx.fillStyle = "rgba(30, 41, 59, 0.8)"; ctx.strokeStyle = m.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(-15, 0, 35, -Math.PI/3, Math.PI/3); ctx.stroke();
+            for(let i=-2; i<=2; i++) { ctx.beginPath(); ctx.moveTo(-15, 0); const a = i * 0.4; ctx.lineTo(-15 + Math.cos(a)*35, Math.sin(a)*35); ctx.stroke(); }
+            ctx.strokeStyle = "#94a3b8"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(15, 0); ctx.stroke(); ctx.fillStyle = m.color; ctx.fillRect(15, -6, 4, 12);
+            if(isActive) { ctx.strokeStyle = m.color; ctx.globalAlpha = 1 - pulse; ctx.beginPath(); ctx.arc(25 + pulse*20, 0, 5 + pulse*15, -0.5, 0.5); ctx.stroke(); ctx.beginPath(); ctx.arc(35 + pulse*20, 0, 10 + pulse*20, -0.6, 0.6); ctx.stroke(); ctx.globalAlpha = 1; ctx.fillStyle = pulse > 0.5 ? m.color : "#000"; ctx.beginPath(); ctx.arc(17, 0, 2, 0, Math.PI*2); ctx.fill(); }
             ctx.restore();
         } else if(m.type === "cargo") {
-            ctx.fillStyle = "rgba(148, 163, 184, 0.3)"; ctx.fillRect(outer+5, -25, 35, 50); ctx.strokeRect(outer+5, -25, 35, 50);
-            ctx.beginPath(); ctx.moveTo(outer+5, -5); ctx.lineTo(outer+40, -5); ctx.stroke();
-            ctx.fillStyle = m.color; ctx.fillRect(outer+10, -20, 10, 10);
+            ctx.fillStyle = "rgba(148, 163, 184, 0.3)"; ctx.fillRect(outer+5, -25, 35, 50); ctx.strokeRect(outer+5, -25, 35, 50); ctx.beginPath(); ctx.moveTo(outer+5, -5); ctx.lineTo(outer+40, -5); ctx.stroke(); ctx.fillStyle = m.color; ctx.fillRect(outer+10, -20, 10, 10);
         } else if(m.type === "sensor") {
             const sensorColor = "#ef4444"; const beamPulse = 0.5 + Math.sin(time * 5) * 0.5;
+            
+            // SOM DO SENSOR: PING RÍTMICO
+            if (isActive && time - lastSensorPingTime > 0.8) {
+                sfx.playSensorPing();
+                lastSensorPingTime = time;
+            }
+
             ctx.fillStyle = "#1e293b"; ctx.fillRect(outer, -20, 15, 40); ctx.strokeStyle = "#475569"; ctx.strokeRect(outer, -20, 15, 40);
             ctx.lineWidth = 4; ctx.strokeStyle = "#64748b"; ctx.beginPath(); ctx.moveTo(outer+15, 0); ctx.lineTo(outer+35, 0); ctx.stroke();
             ctx.save(); ctx.translate(outer + 45, 0); ctx.rotate(time * 2);
@@ -397,30 +524,18 @@
         } else if(m.type === "coil") {
             const energyColor = "#22d3ee"; const pulse = 0.5 + Math.sin(time * 8) * 0.5;
             ctx.fillStyle = "#0f172a"; ctx.fillRect(outer, -30, 12, 60); ctx.strokeRect(outer, -30, 12, 60);
-            const plasmaG = ctx.createLinearGradient(outer+12, 0, outer+50, 0);
-            plasmaG.addColorStop(0, energyColor); plasmaG.addColorStop(0.5, "#fff"); plasmaG.addColorStop(1, energyColor);
+            const plasmaG = ctx.createLinearGradient(outer+12, 0, outer+50, 0); plasmaG.addColorStop(0, energyColor); plasmaG.addColorStop(0.5, "#fff"); plasmaG.addColorStop(1, energyColor);
             ctx.fillStyle = plasmaG; ctx.globalAlpha = 0.2 + pulse * 0.3; ctx.fillRect(outer + 12, -8, 45, 16); ctx.globalAlpha = 1;
-            ctx.lineWidth = 3; ctx.strokeStyle = "#94a3b8";
-            for(let i=0; i<3; i++) {
-                let xPos = outer + 18 + (i * 12); ctx.strokeRect(xPos, -22, 6, 44);
-                if(isActive) { ctx.strokeStyle = energyColor; ctx.globalAlpha = pulse; ctx.strokeRect(xPos, -22, 6, 44); ctx.globalAlpha = 1; }
-            }
-            ctx.fillStyle = "#334155"; ctx.beginPath(); ctx.arc(outer+55, 0, 8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-            ctx.fillStyle = energyColor; ctx.beginPath(); ctx.arc(outer+55, 0, 3 + pulse*2, 0, Math.PI*2); ctx.fill();
+            ctx.lineWidth = 3; ctx.strokeStyle = "#94a3b8"; for(let i=0; i<3; i++) { let xPos = outer + 18 + (i * 12); ctx.strokeRect(xPos, -22, 6, 44); if(isActive) { ctx.strokeStyle = energyColor; ctx.globalAlpha = pulse; ctx.strokeRect(xPos, -22, 6, 44); ctx.globalAlpha = 1; } }
+            ctx.fillStyle = "#334155"; ctx.beginPath(); ctx.arc(outer+55, 0, 8, 0, Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle = energyColor; ctx.beginPath(); ctx.arc(outer+55, 0, 3 + pulse*2, 0, Math.PI*2); ctx.fill();
         } else if(m.type === "tank") {
             const oxyColor = "#22d3ee"; const pulse = 0.5 + Math.sin(time * 4) * 0.5;
+            if (isActive && time - lastBeatTime > 0.4) { sfx.playBeat(); lastBeatTime = time; }
             ctx.fillStyle = "#1e293b"; ctx.fillRect(outer, -25, 10, 50); ctx.strokeRect(outer, -25, 10, 50);
-            const drawTank = (y) => {
-                ctx.fillStyle = "#475569"; ctx.beginPath(); ctx.roundRect(outer + 10, y - 16, 40, 32, 6); ctx.fill(); ctx.stroke();
-                ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(outer + 15, y - 10); ctx.lineTo(outer + 45, y - 10); ctx.stroke();
-                ctx.fillStyle = "#0f172a"; ctx.fillRect(outer + 18, y + 4, 25, 4);
-                ctx.fillStyle = oxyColor; ctx.globalAlpha = 0.6 + pulse * 0.4; ctx.fillRect(outer + 18, y + 4, 18, 4); ctx.globalAlpha = 1;
-            };
+            const drawTank = (y) => { ctx.fillStyle = "#475569"; ctx.beginPath(); ctx.roundRect(outer + 10, y - 16, 40, 32, 6); ctx.fill(); ctx.stroke(); ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(outer + 15, y - 10); ctx.lineTo(outer + 45, y - 10); ctx.stroke(); ctx.fillStyle = "#0f172a"; ctx.fillRect(outer + 18, y + 4, 25, 4); ctx.fillStyle = oxyColor; ctx.globalAlpha = 0.6 + pulse * 0.4; ctx.fillRect(outer + 18, y + 4, 18, 4); ctx.globalAlpha = 1; };
             drawTank(-18); drawTank(18);
             ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(outer + 30, -5); ctx.lineTo(outer + 30, 5); ctx.stroke();
-            ctx.save(); ctx.translate(outer + 58, 0); ctx.fillStyle = "#334155"; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
-            ctx.rotate(isActive ? 0.5 + pulse * 0.5 : 0.5); ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(6, 0); ctx.stroke(); ctx.restore();
+            ctx.save(); ctx.translate(outer + 58, 0); ctx.fillStyle = "#334155"; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill(); ctx.rotate(isActive ? 0.5 + pulse * 0.5 : 0.5); ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(6, 0); ctx.stroke(); ctx.restore();
         }
         ctx.restore();
     }
@@ -431,53 +546,30 @@
         const animSpeed = 12;
         const walkPhase = moving ? Math.sin(t * animSpeed) : 0;
         if (vel < -0.0001) ctx.scale(1, 1); else if (vel > 0.0001) ctx.scale(-1, 1);
-        const s = (ringRadius / 220); 
-        ctx.scale(s, s);
+        const s = (ringRadius / 220); ctx.scale(s, s);
         const white = "#ffffff"; const bodyGrey = "#cbd5e1"; const helmetDark = "#0f172a"; const gold = "#fbbf24";
         ctx.save(); ctx.translate(-5.5, -2); ctx.rotate(moving ? walkPhase * 0.6 : 0); ctx.fillStyle = bodyGrey; ctx.beginPath(); ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]); ctx.fill(); ctx.restore();
         ctx.save(); ctx.translate(5.5, -2); ctx.rotate(moving ? -walkPhase * 0.6 : 0); ctx.fillStyle = white; ctx.beginPath(); ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]); ctx.fill(); ctx.restore();
-        ctx.save();
-        const bounce = moving ? Math.abs(Math.sin(t * animSpeed)) * 1.5 : 0; ctx.translate(0, -bounce - 2);
-        ctx.fillStyle = "#334155"; ctx.beginPath(); ctx.roundRect(-14, -28, 10, 24, 4); ctx.fill();
-        ctx.fillStyle = white; ctx.beginPath(); ctx.roundRect(-12, -32, 24, 32, [8, 8, 4, 4]); ctx.fill();
-        ctx.fillStyle = gold; ctx.globalAlpha = 0.5 + Math.sin(t*5)*0.5; ctx.fillRect(-5, -22, 10, 2); ctx.globalAlpha = 1;
+        ctx.save(); const bounce = moving ? Math.abs(Math.sin(t * animSpeed)) * 1.5 : 0; ctx.translate(0, -bounce - 2);
+        ctx.fillStyle = "#334155"; ctx.beginPath(); ctx.roundRect(-14, -28, 10, 24, 4); ctx.fill(); ctx.fillStyle = white; ctx.beginPath(); ctx.roundRect(-12, -32, 24, 32, [8, 8, 4, 4]); ctx.fill(); ctx.fillStyle = gold; ctx.globalAlpha = 0.5 + Math.sin(t*5)*0.5; ctx.fillRect(-5, -22, 10, 2); ctx.globalAlpha = 1;
         ctx.save(); ctx.translate(-10, -25); ctx.rotate(moving ? -walkPhase * 0.8 : 0.2); ctx.fillStyle = bodyGrey; ctx.beginPath(); ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill(); ctx.restore();
         ctx.save(); ctx.translate(10, -25); ctx.rotate(moving ? walkPhase * 0.8 : -0.2); ctx.fillStyle = white; ctx.beginPath(); ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill(); ctx.restore();
-        ctx.save(); ctx.translate(0, -38); ctx.fillStyle = white; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = helmetDark; ctx.beginPath(); ctx.ellipse(4, -1, 11, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); 
-        ctx.restore(); ctx.restore(); 
+        ctx.save(); ctx.translate(0, -38); ctx.fillStyle = white; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = helmetDark; ctx.beginPath(); ctx.ellipse(4, -1, 11, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); ctx.restore(); ctx.restore(); 
     }
 
     function loop() {
         resize();
-        time += 0.016;
-        stationRot += 0.001;
-        playerVel += input;
-        playerVel *= 0.85; 
-        playerAngle += playerVel;
+        time += 0.016; stationRot += 0.001;
+        playerVel += input; playerVel *= 0.85; playerAngle += playerVel;
         ctx.clearRect(0, 0, w, h);
-        
         drawStars();
-        
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(stationRot);
-
-        const rInner = ringRadius - ringWidth/2;
-        const rOuter = ringRadius + ringWidth/2;
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(stationRot);
+        const rInner = ringRadius - ringWidth/2; const rOuter = ringRadius + ringWidth/2;
         const ringG = ctx.createRadialGradient(0,0, rInner, 0,0, rOuter);
         ringG.addColorStop(0, "#080c14"); ringG.addColorStop(0.3, "#1e293b"); ringG.addColorStop(0.7, "#1e293b"); ringG.addColorStop(1, "#080c14");
-
-        ctx.beginPath();
-        ctx.arc(0, 0, rOuter, 0, Math.PI * 2, false); 
-        ctx.arc(0, 0, rInner, 0, Math.PI * 2, true);  
-        ctx.fillStyle = ringG;
-        ctx.fill();
-
+        ctx.beginPath(); ctx.arc(0, 0, rOuter, 0, Math.PI * 2, false); ctx.arc(0, 0, rInner, 0, Math.PI * 2, true); ctx.fillStyle = ringG; ctx.fill();
         ctx.strokeStyle = "rgba(255,255,255,0.05)"; ctx.lineWidth = 1.5;
-        for(let i=0; i<32; i++) { 
-            ctx.save(); ctx.rotate(i * (Math.PI/16)); ctx.beginPath(); ctx.moveTo(rInner, 0); ctx.lineTo(rOuter, 0); ctx.stroke(); ctx.restore(); 
-        }
-
+        for(let i=0; i<32; i++) { ctx.save(); ctx.rotate(i * (Math.PI/16)); ctx.beginPath(); ctx.moveTo(rInner, 0); ctx.lineTo(rOuter, 0); ctx.stroke(); ctx.restore(); }
         ctx.lineWidth = 3; ctx.strokeStyle = "rgba(34, 211, 238, 0.4)"; ctx.beginPath(); ctx.arc(0, 0, rOuter, 0, Math.PI*2); ctx.stroke();
         ctx.strokeStyle = "rgba(251, 191, 36, 0.2)"; ctx.beginPath(); ctx.arc(0, 0, rInner, 0, Math.PI*2); ctx.stroke();
 
@@ -485,13 +577,23 @@
         modules.forEach(m => { 
             const pAng = (playerAngle % (Math.PI*2) + (Math.PI*2)) % (Math.PI*2);
             const diff = Math.abs(pAng - m.angle);
-            const isNowActive = diff < 0.15 || diff > (Math.PI*2 - 0.15);
+            const isNowActive = diff < 0.20 || diff > (Math.PI*2 - 0.20);
             if(isNowActive) activeMod = m;
+            
+            // SONOPLASTIA ESPACIAL DINÂMICA
+            if(m.type === "tank") {
+                const normalizedDiff = Math.max(0, 1 - (diff / 0.8));
+                sfx.updateOxygen(normalizedDiff);
+            }
+            if(m.type === "sensor") {
+                const normalizedDiff = Math.max(0, 1 - (diff / 0.8));
+                sfx.updateSensorAudio(normalizedDiff, time);
+            }
+
             drawModule(m, isNowActive); 
         });
         
         currentActiveModule = activeMod;
-
         ctx.save(); ctx.rotate(playerAngle); ctx.translate(ringRadius, 0); ctx.rotate(-Math.PI/2); drawAstronaut(time, playerVel); ctx.restore();
         ctx.restore();
         
@@ -505,7 +607,7 @@
             else if(activeMod.type === "tank") actBtn.innerHTML = "<b>SUPORTE DE<br>VIDA</b>";
             else if(activeMod.type === "antenna") actBtn.innerHTML = "<b>ESTABELECER<br>LINK</b>";
             else actBtn.innerHTML = "<b>INSPECIONAR<br>MÓDULO</b>";
-        } else { mCard.classList.remove('visible'); actBtn.classList.remove('active'); }
+        } else { mCard.classList.remove('visible'); actBtn.classList.remove('active'); sfx.updateOxygen(0); sfx.updateSensorAudio(0, time); }
         requestAnimationFrame(loop);
     }
     window.onload = loop;
