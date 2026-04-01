@@ -86,12 +86,11 @@
             letter-spacing: 1px;
         }
 
-        /* AJUSTE: Controles centralizados e elevados */
         .controls-container {
             position: absolute; 
-            bottom: 120px; /* Elevado do fundo */
+            bottom: 120px;
             left: 50%;
-            transform: translateX(-50%); /* Centralizado horizontalmente */
+            transform: translateX(-50%);
             display: flex; 
             justify-content: center; 
             align-items: center;
@@ -147,7 +146,7 @@
             position: absolute; 
             bottom: 30px; 
             left: 50%; 
-            transform: translateX(-50%); /* Centralizado horizontalmente no rodapé */
+            transform: translateX(-50%);
             font-size: 11px; 
             color: var(--neon-cyan); 
             letter-spacing: 2px;
@@ -191,7 +190,10 @@
     const actBtn = document.getElementById('action-btn');
 
     let w, h, cx, cy, ringRadius, ringWidth;
-    let playerAngle = 0;
+    
+    // POSIÇÃO INICIAL: Math.PI/4 corresponde ao ACESSO AO ELEVADOR no array modules
+    let playerAngle = Math.PI / 4; 
+    
     let stationRot = 0;
     let playerVel = 0;
     let input = 0;
@@ -202,15 +204,15 @@
     let dockDoorState = 0;
     let liftDoorState = 0;
 
-    // Definição dos módulos com os links específicos
+    // Definição dos módulos
     const modules = [
-        { angle: 0, name: "NAVE ACOPLADA", desc: "Acesso direto à Gunship Classe-S. Escotilha de pressurização aberta para embarque.", color: "#fbbf24", type: "dock_door", link: "cole_aqui_seu_arquivo.html" },
+        { angle: 0, name: "NAVE ACOPLADA", desc: "Acesso direto à Gunship Classe-S. Escotilha de pressurização aberta para embarque.", color: "#fbbf24", type: "dock_door", link: "#" },
         { angle: Math.PI/4, name: "ACESSO AO ELEVADOR", desc: "Porta de elevação industrial automática para trânsito de pessoal entre setores.", color: "#fbbf24", type: "rect_door", link: "yellow-door-open.html" },
-        { angle: Math.PI/2, name: "ANTENA DE LONGO ALCANCE", desc: "Comunicação quântica inter-setorial ativa. Sincronizando dados com a frota orbital.", color: "#22d3ee", type: "antenna", link: "cole_aqui_seu_arquivo.html" },
-        { angle: (Math.PI/3)*2, name: "UNIDADE DE ARMAZENAMENTO", desc: "Container industrial reforçado com travas magnéticas.", color: "#94a3b8", type: "cargo", link: "cole_aqui_seu_arquivo.html" },
-        { angle: Math.PI, name: "MATRIZ DE SENSORES", desc: "Varredura multiespectral de alta precisão com radar rotativo ativo.", color: "#ef4444", type: "sensor", link: "cole_aqui_seu_arquivo.html" },
-        { angle: (Math.PI/3)*4, name: "BOBINA DE ENERGIA", desc: "Supercondutor magnético. Distribuição de carga de plasma para a estação.", color: "#22d3ee", type: "coil", link: "cole_aqui_seu_arquivo.html" },
-        { angle: (Math.PI/3)*5, name: "COMPRESSOR DE OXIGÊNIO", desc: "Módulo criogênico de alta pressão. Garante atmosfera respirável em todo o setor.", color: "#22d3ee", type: "tank", link: "cole_aqui_seu_arquivo.html" }
+        { angle: Math.PI/2, name: "ANTENA DE LONGO ALCANCE", desc: "Comunicação quântica inter-setorial ativa. Sincronizando dados com a frota orbital.", color: "#22d3ee", type: "antenna", link: "#" },
+        { angle: (Math.PI/3)*2, name: "UNIDADE DE ARMAZENAMENTO", desc: "Container industrial reforçado com travas magnéticas.", color: "#94a3b8", type: "cargo", link: "#" },
+        { angle: Math.PI, name: "MATRIZ DE SENSORES", desc: "Varredura multiespectral de alta precisão com radar rotativo ativo.", color: "#ef4444", type: "sensor", link: "#" },
+        { angle: (Math.PI/3)*4, name: "BOBINA DE ENERGIA", desc: "Supercondutor magnético. Distribuição de carga de plasma para a estação.", color: "#22d3ee", type: "coil", link: "#" },
+        { angle: (Math.PI/3)*5, name: "COMPRESSOR DE OXIGÊNIO", desc: "Módulo criogênico de alta pressão. Garante atmosfera respirável em todo o setor.", color: "#22d3ee", type: "tank", link: "#" }
     ];
 
     let currentActiveModule = null;
@@ -234,7 +236,7 @@
         }
     }
 
-    // Configuração de inputs (Mouse/Touch)
+    // Configuração de inputs
     const setInput = (id, val) => {
         const el = document.getElementById(id);
         const start = (e) => { e.preventDefault(); input = val; };
@@ -245,7 +247,6 @@
     setInput('btn-left', 0.0012); 
     setInput('btn-right', -0.0012);
 
-    // Configuração de inputs (Teclado - A, D, Setas)
     window.addEventListener('keydown', (e) => {
         const key = e.key.toLowerCase();
         if (key === 'a' || key === 'arrowleft') input = 0.0012;
@@ -258,10 +259,9 @@
         if ((key === 'd' || key === 'arrowright') && input < 0) input = 0;
     });
 
-    // Ação do botão de interação
     actBtn.addEventListener('click', () => {
         if (currentActiveModule && currentActiveModule.link) {
-            window.location.href = currentActiveModule.link;
+            console.log("Interagindo com:", currentActiveModule.name);
         }
     });
 
