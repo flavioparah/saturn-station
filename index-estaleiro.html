@@ -1,0 +1,395 @@
+<!-- 
+  ==========================================================================
+  GITHUB DEPLOYMENT INSTRUCTIONS
+  ==========================================================================
+  LOCAL DE COLAGEM DESTE ARQUIVO: /STATION/CORE/NAV/index.html
+  ==========================================================================
+-->
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>STATION-CORE // A1 - THOUGHT HUD</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Rajdhani:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-yellow: #ffd700;
+            --neon-blue: #22d3ee;
+            --bg-dark: #020817;
+        }
+        
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: var(--bg-dark); 
+            font-family: 'Orbitron', sans-serif; color: white;
+            touch-action: none;
+        }
+
+        #canvas-container { 
+            position: absolute; top: 0; left: 0; 
+            width: 100%; height: 100%; z-index: 1; 
+        }
+
+        .interface-layer {
+            position: absolute; inset: 0; z-index: 100;
+            pointer-events: none;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        .thought-container {
+            position: relative;
+            margin-bottom: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: floatUI 4s ease-in-out infinite;
+        }
+
+        #dialog-box {
+            width: 90vw; max-width: 380px;
+            background: rgba(15, 23, 42, 0.45); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(34, 211, 238, 0.3);
+            box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.1), 0 25px 50px rgba(0, 0, 0, 0.6);
+            padding: 24px;
+            pointer-events: auto;
+            border-radius: 40px 40px 40px 15px; 
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            position: relative;
+        }
+
+        .thought-dot {
+            position: absolute;
+            background: rgba(34, 211, 238, 0.4);
+            backdrop-filter: blur(4px);
+            border-radius: 50%;
+            border: 1px solid rgba(34, 211, 238, 0.2);
+        }
+        
+        .dot-1 { width: 22px; height: 22px; bottom: -35px; left: 35px; opacity: 0.7; }
+        .dot-2 { width: 14px; height: 14px; bottom: -60px; left: 65px; opacity: 0.5; }
+        .dot-3 { width: 8px; height: 8px; bottom: -80px; left: 90px; opacity: 0.3; }
+
+        @keyframes floatUI {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .astronaut-icon {
+            width: 72px; height: 72px; flex-shrink: 0;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+            animation: pulse 3s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+
+        .content-container { flex-grow: 1; }
+        .dialog-label { font-size: 9px; color: var(--neon-blue); margin-bottom: 6px; letter-spacing: 2px; font-weight: 900; opacity: 0.9; }
+        .dialog-text { font-family: 'Rajdhani', sans-serif; font-size: 15px; text-transform: uppercase; line-height: 1.3; margin-bottom: 18px; letter-spacing: 0.5px; color: #fff; text-shadow: 0 0 8px rgba(34, 211, 238, 0.4); }
+
+        .advance-btn {
+            background: rgba(34, 211, 238, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue);
+            font-family: 'Orbitron', sans-serif; font-size: 9px; padding: 12px; width: 100%; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 2px; transition: all 0.3s ease; font-weight: 900; border-radius: 20px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center;
+        }
+
+        .advance-btn:hover { background: var(--neon-blue); color: #020817; box-shadow: 0 0 20px var(--neon-blue); }
+
+        #loader {
+            position: fixed; inset: 0; background: #000; z-index: 500;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+        }
+        .spinner { width: 30px; height: 30px; border: 2px solid var(--neon-blue); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .hud-vignette { position: absolute; inset: 0; background: radial-gradient(circle, transparent 55%, rgba(0, 0, 0, 0.85) 100%); pointer-events: none; z-index: 60; }
+    </style>
+</head>
+<body onclick="unlockAudio()">
+
+<div id="loader">
+    <div class="spinner"></div>
+    <span style="letter-spacing: 3px; font-size: 9px; color: var(--neon-blue)">SINCRONIZANDO INTERFACE NEURAL...</span>
+</div>
+
+<div class="hud-vignette"></div>
+<div id="canvas-container"></div>
+
+<div class="interface-layer">
+    <div class="thought-container">
+        <div id="dialog-box">
+            <div class="astronaut-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 22C4 19.5 6.5 17.5 12 17.5C17.5 17.5 20 19.5 20 22" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+                    <path d="M12 2.5C7.85786 2.5 4.5 5.85786 4.5 10V12.5C4.5 15.2614 6.73858 17.5 9.5 17.5H14.5C17.2614 17.5 19.5 15.2614 19.5 12.5V10C19.5 5.85786 16.1421 2.5 12 2.5Z" stroke="white" stroke-width="1.2" stroke-linejoin="round"/>
+                    <path d="M6 9.5C6 7.5 8.68629 6 12 6C15.3137 6 18 7.5 18 9.5C18 12.5 15.3137 14.5 12 14.5C8.68629 14.5 6 12.5 6 9.5Z" fill="white" fill-opacity="0.1" stroke="white" stroke-width="1"/>
+                    <path d="M14 8C14.5 8 16 8.5 16 9.5" stroke="white" stroke-width="0.5" stroke-linecap="round" opacity="0.6"/>
+                    <path d="M8.5 17.5L9 18.5M15.5 17.5L15 18.5" stroke="white" stroke-width="1" opacity="0.6"/>
+                </svg>
+            </div>
+            
+            <div class="content-container">
+                <div class="dialog-label">NEURAL FEED // A1</div>
+                <div class="dialog-text">
+                    Trajeto atualizado. <br>
+                    Mantenha o ritmo constante.
+                </div>
+                
+                <button class="advance-btn" onclick="goToNextScene()">
+                    CONFIRMAR TRANSMISSÃO
+                </button>
+            </div>
+
+            <div class="thought-dot dot-1"></div>
+            <div class="thought-dot dot-2"></div>
+            <div class="thought-dot dot-3"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let scene, camera, renderer, clock;
+    let helmetGroup, corridor;
+    let isRunning = false;
+    
+    // Áudio Context
+    let audioCtx, ambientOsc, stepOsc;
+    let audioStarted = false;
+    let lastStepPhase = 0;
+
+    function initAudio() {
+        if (audioStarted) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Drone de Suspense (Fundo)
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.15;
+        masterGain.connect(audioCtx.destination);
+
+        const osc1 = audioCtx.createOscillator();
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(45, audioCtx.currentTime); 
+        
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(200, audioCtx.currentTime);
+        
+        const lfo = audioCtx.createOscillator();
+        lfo.frequency.setValueAtTime(0.2, audioCtx.currentTime);
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.setValueAtTime(50, audioCtx.currentTime);
+        
+        lfo.connect(lfoGain);
+        lfoGain.connect(filter.frequency);
+        
+        osc1.connect(filter);
+        filter.connect(masterGain);
+        
+        osc1.start();
+        lfo.start();
+        
+        audioStarted = true;
+    }
+
+    function playStepSound() {
+        if (!audioCtx || audioCtx.state === 'suspended') return;
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(60, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.1);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+        filter.Q.setValueAtTime(2, audioCtx.currentTime);
+
+        const noise = audioCtx.createBufferSource();
+        const bufferSize = audioCtx.sampleRate * 0.1;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        noise.buffer = buffer;
+
+        const noiseGain = audioCtx.createGain();
+        noiseGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+        osc.connect(gain);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        noise.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+        noise.stop(audioCtx.currentTime + 0.15);
+    }
+
+    function unlockAudio() {
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        initAudio();
+    }
+
+    function startApp() {
+        if (isRunning) return;
+        isRunning = true;
+        document.getElementById('loader').style.display = 'none';
+        init();
+        // Tenta iniciar áudio após fechar o loader
+        initAudio();
+    }
+
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020817);
+        clock = new THREE.Clock();
+        
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.35)); 
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+        scene.add(hemiLight);
+
+        const pTeto = new THREE.PointLight(0xffd700, 1.5, 40);
+        pTeto.position.set(0, 14, -5); 
+        scene.add(pTeto);
+
+        const pLadoL = new THREE.PointLight(0xffffff, 1.0, 50);
+        pLadoL.position.set(-14, 2, 0); 
+        scene.add(pLadoL);
+
+        const pLadoR = new THREE.PointLight(0xffffff, 1.0, 50);
+        pLadoR.position.set(14, 2, 0);
+        scene.add(pLadoR);
+
+        const pFrontal = new THREE.PointLight(0x22d3ee, 0.4, 20); 
+        pFrontal.position.set(0, 5, 12);
+        scene.add(pFrontal);
+
+        setupAstronautHelmet();
+        setupStationTunnel();
+        
+        camera.position.set(0, 0, 15); 
+        camera.lookAt(0, 2, -20);
+
+        window.addEventListener('resize', onResize);
+        animate();
+    }
+
+    function setupAstronautHelmet() {
+        helmetGroup = new THREE.Group();
+        const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.05 });
+        const neonMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
+        const dome = new THREE.Mesh(new THREE.SphereGeometry(3, 40, 40), whiteMat);
+        helmetGroup.add(dome);
+        const stripe = new THREE.Mesh(new THREE.TorusGeometry(3.04, 0.04, 16, 100), neonMat);
+        stripe.rotation.x = Math.PI/2; stripe.rotation.y = Math.PI/2;
+        helmetGroup.add(stripe);
+        const visor = new THREE.Mesh(new THREE.SphereGeometry(2.9, 40, 40, 0, Math.PI*2, 0, Math.PI/1.65), new THREE.MeshStandardMaterial({ color: 0x020202, metalness: 0.8, roughness: 0.1 }));
+        visor.rotation.x = Math.PI/2;
+        helmetGroup.add(visor);
+        const moduleGeom = new THREE.BoxGeometry(1.2, 1.8, 2.2);
+        const lMod = new THREE.Mesh(moduleGeom, whiteMat);
+        lMod.position.set(-2.8, -0.2, 0); helmetGroup.add(lMod);
+        const rMod = lMod.clone(); rMod.position.set(2.8, -0.2, 0); helmetGroup.add(rMod);
+        helmetGroup.position.set(0, -5.2, 8); helmetGroup.rotation.y = Math.PI; 
+        scene.add(helmetGroup);
+    }
+
+    function setupStationTunnel() {
+        corridor = new THREE.Group();
+        const tubeGeom = new THREE.CylinderGeometry(15, 15, 800, 8, 1, true);
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x333333, side: THREE.BackSide, metalness: 0.3, roughness: 0.7 });
+        const tube = new THREE.Mesh(tubeGeom, wallMat); tube.rotation.x = Math.PI / 2; corridor.add(tube);
+        for(let i=0; i<40; i++) {
+            const z = i * -20;
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(14.8, 0.15, 16, 8), new THREE.MeshStandardMaterial({color: 0x666666, metalness: 0.4, roughness: 0.6}));
+            ring.position.z = z; ring.rotation.z = Math.PI / 8; corridor.add(ring);
+            const lightGeom = new THREE.PlaneGeometry(14, 1.5);
+            const lightMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 1.0, side: THREE.DoubleSide });
+            const topLight = new THREE.Mesh(lightGeom, lightMat); topLight.position.set(0, 14.8, z); topLight.rotation.x = Math.PI/2; corridor.add(topLight);
+            const footerLightGeom = new THREE.PlaneGeometry(6, 0.4);
+            const footerLightMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6, side: THREE.DoubleSide });
+            const footerR = new THREE.Mesh(footerLightGeom, footerLightMat); footerR.position.set(5.5, -13.8, z); footerR.rotation.x = -Math.PI/2; corridor.add(footerR);
+            const footerL = footerR.clone(); footerL.position.set(-5.5, -13.8, z); corridor.add(footerL);
+        }
+        scene.add(corridor);
+    }
+
+    function goToNextScene() {
+        // --- INÍCIO DA ÁREA DE COLAGEM ---
+        // INSTRUÇÃO: Substitua o nome entre aspas pelo nome do seu arquivo HTML no GitHub.
+        
+        const COLE_SEU_ATIVO_HTML = 'estaleiro.html'; 
+
+        // --- FIM DA ÁREA DE COLAGEM ---
+
+        const overlay = document.querySelector('.hud-vignette');
+        overlay.style.background = '#22d3ee';
+        overlay.style.opacity = '0.4';
+        overlay.style.transition = 'all 0.5s ease';
+        
+        setTimeout(() => {
+            window.location.href = COLE_SEU_ATIVO_HTML; 
+        }, 500); 
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (!isRunning) return;
+        const time = clock.getElapsedTime();
+        corridor.position.z = (time * 28) % 20;
+        
+        const walkSpeed = 12.0; 
+        const phase = time * walkSpeed;
+        
+        // Trigger de som de passo baseado no ponto mais baixo do bounce
+        const currentStepPhase = Math.cos(phase);
+        if (currentStepPhase < -0.98 && lastStepPhase >= -0.98) {
+            playStepSound();
+        }
+        lastStepPhase = currentStepPhase;
+
+        const sideSwing = Math.sin(phase * 0.5); helmetGroup.position.x = sideSwing * 0.4;
+        const smoothBounce = Math.pow((currentStepPhase + 1) / 2, 0.7); 
+        
+        helmetGroup.position.y = -5.2 + smoothBounce * 0.35;
+        helmetGroup.rotation.z = sideSwing * 0.05; helmetGroup.rotation.x = (1 - smoothBounce) * 0.1;
+        renderer.render(scene, camera);
+    }
+
+    function onResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = startApp;
+</script>
+</body>
+</html>
+
+              
