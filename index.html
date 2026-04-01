@@ -220,6 +220,9 @@
     let time = 0;
     let currentActivePortal = null;
 
+    // Estado do teclado
+    const keys = { a: false, d: false, ArrowLeft: false, ArrowRight: false };
+
     const stars = Array.from({length: 150}, () => ({
         x: Math.random(), 
         y: Math.random(), 
@@ -228,14 +231,14 @@
         pulse: Math.random() * 0.02
     }));
 
-    // Configuração de Portais com URLs independentes
+    // Configuração de Portais com espaços para os seus ficheiros HTML
     const portals = [
-        { angle: 0, name: "NÚCLEO TÉRMICO", color: "#00f2ff", desc: "SISTEMA TRANCADO", state: 0, isLocked: true, url: "nucleo.html" },
-        { angle: (Math.PI*2)/6, name: "HABITAT", color: "#4ade80", desc: "ACESSO NEGADO", state: 0, isLocked: true, url: "habitat.html" },
-        { angle: ((Math.PI*2)/6)*2, name: "ESTALEIRO", color: "#fbbf24", desc: "ZONA RESTRITA", state: 0, isLocked: true, url: "locker1.html" },
-        { angle: ((Math.PI*2)/6)*3, name: "CRIO-LAB", color: "#a855f7", desc: "BLOQUEIO ATIVO", state: 0, isLocked: true, url: "criolab.html" },
-        { angle: ((Math.PI*2)/6)*4, name: "BIO-DOME", color: "#22c55e", desc: "SISTEMA EM ESPERA", state: 0, isLocked: true, url: "biodome.html" },
-        { angle: ((Math.PI*2)/6)*5, name: "COMANDO", color: "#ff4444", desc: "ENCRIPTADO", state: 0, isLocked: true, url: "comando.html" }
+        { angle: 0, name: "NÚCLEO TÉRMICO", color: "#00f2ff", desc: "SISTEMA TRANCADO", state: 0, isLocked: true, url: "cole_aqui_seu_arquivo_nucleo.html" },
+        { angle: (Math.PI*2)/6, name: "HABITAT", color: "#4ade80", desc: "ACESSO NEGADO", state: 0, isLocked: true, url: "cole_aqui_seu_arquivo_habitat.html" },
+        { angle: ((Math.PI*2)/6)*2, name: "ESTALEIRO", color: "#fbbf24", desc: "ZONA RESTRITA", state: 0, isLocked: true, url: "loker1.html" },
+        { angle: ((Math.PI*2)/6)*3, name: "CRIO-LAB", color: "#a855f7", desc: "BLOQUEIO ATIVO", state: 0, isLocked: true, url: "cole_aqui_seu_arquivo_criolab.html" },
+        { angle: ((Math.PI*2)/6)*4, name: "BIO-DOME", color: "#22c55e", desc: "SISTEMA EM ESPERA", state: 0, isLocked: true, url: "cole_aqui_seu_arquivo_biodome.html" },
+        { angle: ((Math.PI*2)/6)*5, name: "COMANDO", color: "#ff4444", desc: "ENCRIPTADO", state: 0, isLocked: true, url: "cole_aqui_seu_arquivo_comando.html" }
     ];
 
     function resize() {
@@ -254,7 +257,7 @@
             ensureAudio();
             playSynthSound(150 + Math.random()*20, 0.1, 0.01);
         };
-        const end = () => input = 0;
+        const end = () => { if(input === val) input = 0; };
         el.addEventListener('mousedown', start);
         el.addEventListener('touchstart', start, {passive: false});
         window.addEventListener('mouseup', end);
@@ -264,16 +267,27 @@
     setupInput('btn-left', 1);   
     setupInput('btn-right', -1); 
 
-    // Ação do Botão: Redireciona para a página específica do setor
+    // Listeners para Teclado (A, D, Setas)
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.ArrowLeft = true;
+        if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.ArrowRight = true;
+        if (e.key === 'Enter' && currentActivePortal) trigger.click();
+        ensureAudio();
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.ArrowLeft = false;
+        if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.ArrowRight = false;
+    });
+
+    // Ação do Botão: Redireciona para o ficheiro específico
     trigger.onclick = () => {
         if(!currentActivePortal) return;
         ensureAudio();
         playSynthSound(440, 0.2, 0.05, 'square');
         
-        // Simulação de transição antes de mudar de página
         trigger.style.transform = "scale(0.8)";
         setTimeout(() => {
-            console.log("Redirecionando para:", currentActivePortal.url);
             window.location.href = currentActivePortal.url;
         }, 300);
     };
@@ -405,8 +419,14 @@
         resize();
         time += 0.016;
         stationRotation += 0.0025; 
+
+        // Combinar inputs visuais e teclado
+        let currentInput = input;
+        if (keys.ArrowLeft) currentInput = 1;
+        if (keys.ArrowRight) currentInput = -1;
+
         playerAngle += velocity;
-        velocity += input * 0.0012; 
+        velocity += currentInput * 0.0012; 
         velocity *= 0.85; 
 
         ctx.clearRect(0, 0, w, h);
@@ -481,5 +501,3 @@
 
 </body>
 </html>
-
-
