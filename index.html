@@ -267,11 +267,16 @@
     setupInput('btn-left', 1);   
     setupInput('btn-right', -1); 
 
-    // Listeners para Teclado (A, D, Setas)
+    // Listeners para Teclado (A, D, Setas e Enter)
     window.addEventListener('keydown', (e) => {
         if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') keys.ArrowLeft = true;
         if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') keys.ArrowRight = true;
-        if (e.key === 'Enter' && currentActivePortal) trigger.click();
+        
+        // Ativação pelo Enter
+        if (e.key === 'Enter' && currentActivePortal) {
+            trigger.click(); // Simula o clique no botão
+        }
+        
         ensureAudio();
     });
 
