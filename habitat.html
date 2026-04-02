@@ -302,7 +302,7 @@ class HabitatAudio {
         g.gain.setValueAtTime(0.06, t);
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
         osc.connect(g); g.connect(this.ctx.destination);
-        osc.start();
+        osc.start(); osc.stop(t + 0.12);
     }
 
     playNav() {
@@ -311,11 +311,18 @@ class HabitatAudio {
         const osc = this.ctx.createOscillator();
         const g = this.ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(320, t);
-        g.gain.setValueAtTime(0.03, t);
+        osc.frequency.setValueAtTime(200 + Math.random() * 30, t);
+        g.gain.setValueAtTime(0.04, t);
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
         osc.connect(g); g.connect(this.ctx.destination);
-        osc.start();
+        osc.start(); osc.stop(t + 0.1);
+    }
+
+    updateProximity(moduleType, dist) {
+        if (!this.initialized) return;
+        // Quanto mais perto de um módulo, mais o vent "respira"
+        const vol = 0.035 + dist * 0.04;
+        this.ventGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.3);
     }
 }
 
@@ -388,7 +395,7 @@ const modules = [
         desc: "Porta pressurizada de retorno à estação principal.",
         color: "#4ade80",
         type: "exit",
-        link: "bio-dome.html" // <--- EDITE AQUI: Substitua "bio-dome.html" pelo nome do seu arquivo .html para mudar o destino da porta
+        link: "a1-open-doors.html" // <--- EDITE AQUI: Substitua "index.html" pelo nome do seu arquivo .html para mudar o destino da porta
     }
 ];
 
@@ -475,14 +482,27 @@ function drawAstronaut(t, vel) {
     const moving = Math.abs(vel) > 0.0004;
     const animSpeed = 11;
     const walkPhase = moving ? Math.sin(t * animSpeed) : 0;
+    if (vel < -0.0001) ctx.scale(1, 1);
+    else if (vel > 0.0001) ctx.scale(-1, 1);
 
-    const white = '#e2e8f0';
-    const bodyGrey = '#334155';
+    const s = ringRadius / 200;
+    ctx.scale(s, s);
+    // Desloca para baixo (+12) para que os pés fiquem dentro da linha do chão
+    ctx.translate(0, 12);
+
+    const white = '#ffffff';
+    const bodyGrey = '#cbd5e1';
     const helmetDark = '#0f172a';
     const green = '#4ade80';
 
-    ctx.translate(cx, cy);
-    ctx.rotate(playerAngle);
+    // Pernas
+    ctx.save(); ctx.translate(-5.5, -2); ctx.rotate(moving ? walkPhase * 0.6 : 0);
+    ctx.fillStyle = bodyGrey; ctx.beginPath();
+    ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]); ctx.fill(); ctx.restore();
+
+    ctx.save(); ctx.translate(5.5, -2); ctx.rotate(moving ? -walkPhase * 0.6 : 0);
+    ctx.fillStyle = white; ctx.beginPath();
+    ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]); ctx.fill(); ctx.restore();
 
     // Corpo + braços
     ctx.save();
@@ -708,151 +728,438 @@ function drawModule(m, isActive) {
                 } else if (seed === 1) {
                     // Foto na parede do vão
                     ctx.fillStyle = '#78350f'; ctx.fillRect(vx+3, vy+3, 8, 10);
-                    ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.7;
+                    ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.6;
                     ctx.fillRect(vx+4, vy+4, 6, 8); ctx.globalAlpha = 1;
+                    // Roupas dobradas
+                    ctx.fillStyle = '#334155'; ctx.fillRect(vx+2, vy+vaoH-6, colW-4, 4);
+                } else if (seed === 2) {
+                    // Garrafa + copo
+                    ctx.fillStyle = '#1d4ed8'; ctx.fillRect(vx+4, vy+4, 5, vaoH-8);
+                    ctx.fillStyle = '#60a5fa'; ctx.fillRect(vx+4, vy+4, 5, 3);
+                    ctx.fillStyle = '#475569'; ctx.fillRect(vx+12, vy+vaoH-10, 4, 8);
+                } else if (seed === 3) {
+                    // Roupas penduradas
+                    ctx.strokeStyle = '#64748b'; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.moveTo(vx+4, vy+3); ctx.lineTo(vx+colW-4, vy+3); ctx.stroke();
+                    for (let c = 0; c < 3; c++) {
+                        ctx.fillStyle = ['#1e3a5f','#1a3a1a','#3b1a1a'][c];
+                        ctx.fillRect(vx + 3 + c*7, vy+4, 5, vaoH-6);
+                    }
+                } else if (seed === 4) {
+                    // Livros empilhados
+                    const cols2 = ['#1d4ed8','#065f46','#7c2d12','#4c1d95'];
+                    for (let b = 0; b < 4; b++) {
+                        ctx.fillStyle = cols2[b];
+                        ctx.fillRect(vx+2 + b*5, vy+vaoH-12, 4, 10);
+                    }
+                } else {
+                    // Vão vazio do colega desaparecido
+                    ctx.fillStyle = '#ef4444'; ctx.globalAlpha = 0.04 + pulse*0.03;
+                    ctx.fillRect(vx, vy, colW, vaoH-1); ctx.globalAlpha = 1;
                 }
             }
         }
 
+        // Pés
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(x+2, H/2-4, 8, 4);
+        ctx.fillRect(x+W-10, H/2-4, 8, 4);
+
         if (isActive) {
-            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
-            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
+            ctx.save(); ctx.shadowBlur = 16; ctx.shadowColor = m.color;
+            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.4;
             ctx.strokeRect(x, -H/2, W, H); ctx.restore();
         }
     }
 
-    // ── PORTA DE SAÍDA ─────────────────────────────────────────────────────────
-    else if (m.type === 'exit') {
-        const portalW = ringWidth * 0.45;
-        // Fundo do portal
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(inner + 2, -portalW/2, ringWidth - 4, portalW);
-        // Moldura
-        ctx.strokeStyle = isActive ? m.color : '#334155';
-        ctx.lineWidth = isActive ? 2 : 1;
-        if (isActive) {
-            ctx.shadowBlur = 20; ctx.shadowColor = m.color;
-            ctx.strokeRect(inner, -portalW/2 - 2, ringWidth, portalW + 4);
-            ctx.shadowBlur = 0;
-        } else {
-            ctx.strokeRect(inner, -portalW/2 - 2, ringWidth, portalW + 4);
+    // ── ÁREA DE CONVÍVIO ──────────────────────────────────────────────────────
+    else if (m.type === 'lounge') {
+        const W = 50; const H = 72; const x = outer - W;
+
+        ctx.fillStyle = '#0f1a1f'; ctx.fillRect(x, -H/2, W, H);
+        ctx.strokeStyle = isActive ? m.color : '#334155'; ctx.lineWidth = 1;
+        ctx.strokeRect(x, -H/2, W, H);
+
+        // Mesa central
+        const mx = x+8; const mw = W-16; const mh = 14;
+        const mTop = -7;
+        ctx.fillStyle = '#1e3a3a'; ctx.fillRect(mx, mTop, mw, mh);
+        ctx.strokeStyle = '#2d5a5a'; ctx.lineWidth = 1; ctx.strokeRect(mx, mTop, mw, mh);
+        // Pés da mesa
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(mx+2, mTop+mh, 3, 8);
+        ctx.fillRect(mx+mw-5, mTop+mh, 3, 8);
+
+        // Cadeiras — 2 de cada lado (só 1 virada para o lado do john)
+        for (let i = 0; i < 2; i++) {
+            const cy2 = -20 + i * 28;
+            ctx.fillStyle = i === 0 ? '#1a2e1a' : '#1e293b';
+            ctx.fillRect(x+4, cy2, 6, 10);
+            ctx.fillRect(x+W-10, cy2, 6, 10);
+            // Encosto
+            ctx.fillStyle = i === 0 ? '#2d4a2d' : '#334155';
+            ctx.fillRect(x+3, cy2-4, 8, 5);
+            ctx.fillRect(x+W-11, cy2-4, 8, 5);
         }
 
-        // Portas de correr
+        // Bandeja + café (só 1 pessoa)
+        ctx.fillStyle = '#374151'; ctx.fillRect(mx+3, mTop+2, 14, 9);
+        ctx.fillStyle = '#78350f'; ctx.fillRect(mx+14, mTop+3, 4, 7); // copo café
+        ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.2; ctx.fillRect(mx+14, mTop+3, 4, 2); ctx.globalAlpha=1;
+        // Vapor
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth=1;
+        ctx.globalAlpha = 0.3 + Math.sin(time*3)*0.3;
+        ctx.beginPath(); ctx.moveTo(mx+16, mTop+2); ctx.quadraticCurveTo(mx+18, mTop-3, mx+15, mTop-6); ctx.stroke();
+        ctx.globalAlpha = 1;
+        // Tablete na mesa
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(mx+20, mTop+2, 10, 7);
+        ctx.fillStyle = '#0ea5e9'; ctx.globalAlpha = 0.2 + pulse*0.2;
+        ctx.fillRect(mx+21, mTop+3, 8, 5); ctx.globalAlpha=1;
+    }
+
+    // ── SAÍDA ─────────────────────────────────────────────────────────────────
+    else if (m.type === 'exit') {
+        const portalW = ringWidth * 0.45;
+        ctx.fillStyle = '#010205';
+        ctx.fillRect(inner + 2, -portalW/2, ringWidth - 4, portalW);
+
+        if (isActive) {
+            ctx.save(); ctx.shadowBlur = 25; ctx.shadowColor = m.color;
+            ctx.strokeStyle = m.color; ctx.lineWidth = 3;
+            ctx.globalAlpha = 0.5 + pulse * 0.5;
+            ctx.strokeRect(inner, -portalW/2 - 2, ringWidth, portalW + 4);
+            ctx.restore();
+        }
+
         const slide = isActive ? (portalW/2) * 0.7 : 0;
+        ctx.save();
         ctx.beginPath(); ctx.rect(inner+2, -portalW/2, ringWidth-4, portalW); ctx.clip();
-        ctx.fillStyle = isActive ? m.color : '#334155';
-        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#1e293b';
         ctx.fillRect(inner+2, -portalW/2 - slide, ringWidth, portalW/2);
         ctx.fillRect(inner+2, slide, ringWidth, portalW/2);
+        ctx.fillStyle = m.color; ctx.globalAlpha = 0.25;
+        ctx.fillRect(inner+2, -2, ringWidth-4, 4);
+        ctx.restore();
+    }
+
+    // O personagem caminha em outer (chão externo). Módulos ficam em outer e crescem
+    // para DENTRO do anel — ou seja, em direção ao centro, valores X decrescentes (outer - W).
+
+    if (m.type === 'bunks') {
+        const W = 28; const H = 76;
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(outer - W, -H / 2, W, H);
+        ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(outer - W, -H / 2, W, H);
+
+        for (let i = 0; i < 3; i++) {
+            const bY = -30 + i * 24;
+            ctx.fillStyle = '#0f172a'; ctx.fillRect(outer - W + 3, bY, 18, 18);
+            ctx.fillStyle = '#334155'; ctx.fillRect(outer - W + 4, bY + 2, 16, 6);
+            ctx.fillStyle = '#64748b'; ctx.fillRect(outer - W + 4, bY + 10, 7, 5);
+        }
+
+        // Luz de presença apagada
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(outer - 6, -H / 2 + 3, 4, 4);
+        if (isActive) {
+            ctx.fillStyle = m.color;
+            ctx.globalAlpha = 0.3 + pulse * 0.3;
+            ctx.fillRect(outer - 6, -H / 2 + 3, 4, 4);
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    else if (m.type === 'john_bunk') {
+        const W = 30; const H = 76;
+        ctx.fillStyle = '#1e2d1e';
+        ctx.fillRect(outer - W, -H / 2, W, H);
+        ctx.strokeStyle = m.color; ctx.lineWidth = 1.5;
+        ctx.strokeRect(outer - W, -H / 2, W, H);
+
+        // Cama do John
+        ctx.fillStyle = '#0f1f0f'; ctx.fillRect(outer - W + 3, -12, 20, 20);
+        ctx.fillStyle = '#1a3a1a'; ctx.fillRect(outer - W + 4, -10, 18, 8);
+
+        // Foto colada na parede do chão
+        ctx.fillStyle = '#78350f'; ctx.fillRect(outer - 10, -28, 8, 10);
+        ctx.fillStyle = '#fbbf24';
+        ctx.globalAlpha = 0.6 + Math.sin(time * 0.5) * 0.1;
+        ctx.fillRect(outer - 9, -27, 6, 8);
+        ctx.globalAlpha = 1;
+
+        // Diário sob travesseiro
+        ctx.fillStyle = '#7c2d12'; ctx.fillRect(outer - W + 4, -10, 7, 2);
+
+        if (isActive) {
+            ctx.save();
+            ctx.shadowBlur = 20; ctx.shadowColor = m.color;
+            ctx.strokeStyle = m.color; ctx.lineWidth = 2; ctx.globalAlpha = 0.6;
+            ctx.strokeRect(outer - W, -H / 2, W, H);
+            ctx.restore();
+        }
+    }
+
+    else if (m.type === 'lounge') {
+        const W = 38; const H = 60;
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(outer - W, -H / 2, W, H);
+        ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(outer - W, -H / 2, W, H);
+
+        // Mesa
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(outer - W + 4, -H / 2 + 6, W - 8, H - 12);
+
+        // Cadeiras
+        for (let i = 0; i < 4; i++) {
+            const sY = -H / 2 + 8 + i * 12;
+            ctx.fillStyle = (i === 1 && isActive) ? '#1a2e1a' : '#1e293b';
+            ctx.fillRect(outer - W + 6, sY, 6, 8);
+            ctx.fillRect(outer - 10, sY, 6, 8);
+        }
+
+        // Bandeja solitária
+        ctx.fillStyle = '#374151'; ctx.fillRect(outer - W + 12, -5, 14, 10);
+        ctx.fillStyle = '#78350f'; ctx.fillRect(outer - W + 22, -3, 4, 6);
+
+        // Vapor do café
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1; ctx.globalAlpha = 0.3 + Math.sin(time * 3) * 0.3;
+        ctx.beginPath(); ctx.moveTo(outer - W + 24, -4); ctx.lineTo(outer - W + 23, -10); ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Luz de teto
+        ctx.fillStyle = m.color;
+        ctx.globalAlpha = isActive ? (0.5 + pulse * 0.4) : 0.15;
+        ctx.fillRect(outer - W / 2 - 4, -H / 2 + 2, 8, 3);
         ctx.globalAlpha = 1;
     }
 
-    ctx.restore();
-}
+    else if (m.type === 'terminal') {
+        const W = 24; const H = 48;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(outer - W, -H / 2, W, H);
+        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
+        ctx.strokeRect(outer - W, -H / 2, W, H);
 
-// ─── UPDATE ───────────────────────────────────────────────────────────────────
-function update() {
-    playerVel += input;
-    playerVel *= 0.92; // atrito
-    playerAngle += playerVel;
-    stationRot += playerVel * 0.3; // paralaxe leve
-    time += 0.016;
+        // Tela sem sinal
+        ctx.fillStyle = '#1c0a0a'; ctx.fillRect(outer - W + 3, -H / 2 + 4, W - 6, H - 14);
 
-    // Poeira flutuante
-    dustParticles.forEach(p => { p.angle += p.speed; });
-
-    // Detectar módulo ativo (mais próximo do playerAngle)
-    let minDist = Infinity;
-    let closest = null;
-    modules.forEach(m => {
-        let angleDiff = playerAngle - m.angle;
-        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-        if (Math.abs(angleDiff) < minDist) {
-            minDist = Math.abs(angleDiff);
-            closest = m;
+        // Estática
+        for (let i = 0; i < 5; i++) {
+            const lY = -H / 2 + 8 + i * 6 + Math.sin(time * 12 + i) * 1.5;
+            ctx.strokeStyle = `rgba(239,68,68,${0.1 + Math.random() * 0.15})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(outer - W + 3, lY); ctx.lineTo(outer - 3, lY); ctx.stroke();
         }
-    });
 
-    if (minDist < 0.3) {
-        if (currentActiveModule !== closest) {
-            currentActiveModule = closest;
-            mTitle.textContent = closest.name;
-            mDesc.textContent = closest.desc;
-            mCard.classList.add('visible');
-            actBtn.classList.add('active');
-        }
-    } else {
-        if (currentActiveModule) {
-            mCard.classList.remove('visible');
-            actBtn.classList.remove('active');
-            currentActiveModule = null;
-        }
+        // Indicador sem sinal
+        ctx.fillStyle = '#ef4444';
+        ctx.globalAlpha = 0.4 + pulse * 0.6;
+        ctx.fillRect(outer - W / 2 - 3, 2, 6, 2);
+        ctx.globalAlpha = 1;
+
+        // LED erro piscando
+        ctx.fillStyle = '#ef4444'; ctx.globalAlpha = pulse;
+        ctx.beginPath(); ctx.arc(outer - 4, H / 2 - 8, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
     }
 
-    // Som de passos
-    if (Math.abs(playerVel) > 0.0005) {
-        if (time - lastStep > 0.35) {
+    else if (m.type === 'lockers') {
+        const W = 28; const H = 76;
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(outer - W, -H / 2, W, H);
+        ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(outer - W, -H / 2, W, H);
+
+        for (let col = 0; col < 2; col++) {
+            for (let row = 0; row < 6; row++) {
+                const lx = outer - W + 2 + col * 13;
+                const ly = -H / 2 + 3 + row * 12;
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(lx, ly, 10, 10);
+                ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.8;
+                ctx.strokeRect(lx, ly, 10, 10);
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(lx + 4, ly + 4, 2, 3);
+            }
+        }
+
+        ctx.fillStyle = m.color;
+        ctx.globalAlpha = isActive ? 0.15 : 0.04;
+        ctx.fillRect(outer - W + 2, -H / 2 + 3, 10, 10);
+        ctx.globalAlpha = 1;
+    }
+
+    else if (m.type === 'exit') {
+        const portalW = ringWidth * 0.45;
+        ctx.fillStyle = '#010205';
+        ctx.fillRect(inner + 2, -portalW / 2, ringWidth - 4, portalW);
+
+        if (isActive) {
+            ctx.save();
+            ctx.shadowBlur = 25; ctx.shadowColor = m.color;
+            ctx.strokeStyle = m.color; ctx.lineWidth = 3;
+            ctx.globalAlpha = 0.5 + pulse * 0.5;
+            ctx.strokeRect(inner, -portalW / 2 - 2, ringWidth, portalW + 4);
+            ctx.restore();
+        }
+
+        const slide = isActive ? (portalW / 2) * 0.7 : 0;
+        ctx.save();
+        ctx.beginPath(); ctx.rect(inner + 2, -portalW / 2, ringWidth - 4, portalW); ctx.clip();
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(inner + 2, -portalW / 2 - slide, ringWidth, portalW / 2);
+        ctx.fillRect(inner + 2, slide, ringWidth, portalW / 2);
+        ctx.fillStyle = m.color; ctx.globalAlpha = 0.25;
+        ctx.fillRect(inner + 2, -2, ringWidth - 4, 4);
+        ctx.restore();
+    }
+
+    ctx.restore();
+
+    // Detecção de proximidade
+    const pAng = ((playerAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    const mAng = ((m.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    let diff = Math.abs(pAng - mAng);
+    if (diff > Math.PI) diff = Math.PI * 2 - diff;
+    return diff < 0.22;
+}
+
+// ─── LOOP PRINCIPAL ───────────────────────────────────────────────────────────
+function loop() {
+    resize();
+    time += 0.016;
+    stationRot += 0.0007; // anel gira mais devagar — peso da solidão
+    playerVel += input;
+    playerVel *= 0.84;
+    playerAngle += playerVel;
+
+    // Som de passo
+    if (Math.abs(playerVel) > 0.0008) {
+        const stepPeriod = 0.55;
+        if (time - lastStep > stepPeriod) {
             sfx.playFootstep();
             lastStep = time;
         }
     }
-}
 
-// ─── DRAW ─────────────────────────────────────────────────────────────────────
-function draw() {
-    ctx.fillStyle = '#000';
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#010205';
     ctx.fillRect(0, 0, w, h);
 
-    // Estrelas de fundo
-    ctx.fillStyle = '#fff';
+    // Fundo estelar
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(stationRot * 0.4);
     stars.forEach(s => {
-        ctx.globalAlpha = s.o;
-        ctx.beginPath(); ctx.arc(cx + s.x, cy + s.y, s.s, 0, Math.PI * 2); ctx.fill();
+        const flicker = 0.6 + Math.sin(time * 1.5 + s.x) * 0.4;
+        ctx.globalAlpha = s.o * flicker;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI * 2); ctx.fill();
     });
-    ctx.globalAlpha = 1;
-
-    // Poeira
-    ctx.save(); ctx.translate(cx, cy); ctx.rotate(stationRot);
-    dustParticles.forEach(p => {
-        const x = Math.cos(p.angle) * ringRadius * p.r;
-        const y = Math.sin(p.angle) * ringRadius * p.r;
-        ctx.fillStyle = '#4ade80';
-        ctx.globalAlpha = p.opacity;
-        ctx.beginPath(); ctx.arc(x, y, p.size, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
     ctx.restore();
 
-    // Anel principal (estação)
+    // Anel principal
     ctx.save(); ctx.translate(cx, cy); ctx.rotate(stationRot);
-    ctx.strokeStyle = 'rgba(74, 222, 128, 0.08)';
-    ctx.lineWidth = ringWidth;
-    ctx.beginPath(); ctx.arc(0, 0, ringRadius, 0, Math.PI * 2); ctx.stroke();
+
+    const rIn = ringRadius - ringWidth / 2;
+    const rOut = ringRadius + ringWidth / 2;
+
+    // Gradiente radial do anel — verde escurecido, habitat
+    const ringG = ctx.createRadialGradient(0, 0, rIn, 0, 0, rOut);
+    ringG.addColorStop(0, '#06100a');
+    ringG.addColorStop(0.3, '#0d1f12');
+    ringG.addColorStop(0.7, '#0d1f12');
+    ringG.addColorStop(1, '#06100a');
+    ctx.beginPath();
+    ctx.arc(0, 0, rOut, 0, Math.PI * 2, false);
+    ctx.arc(0, 0, rIn, 0, Math.PI * 2, true);
+    ctx.fillStyle = ringG; ctx.fill();
+
+    // Grade interna sutil
+    ctx.strokeStyle = 'rgba(74, 222, 128, 0.04)'; ctx.lineWidth = 1;
+    for (let i = 0; i < 24; i++) {
+        ctx.save(); ctx.rotate(i * (Math.PI / 12));
+        ctx.beginPath(); ctx.moveTo(rIn, 0); ctx.lineTo(rOut, 0); ctx.stroke();
+        ctx.restore();
+    }
+
+    // Partículas de poeira flutuando no anel
+    dustParticles.forEach(d => {
+        d.angle += d.speed + stationRot * 0;
+        const dr = rIn + d.r * ringWidth;
+        const dx = Math.cos(d.angle) * dr;
+        const dy = Math.sin(d.angle) * dr;
+        ctx.globalAlpha = d.opacity * (0.5 + Math.sin(time * 2 + d.angle) * 0.5);
+        ctx.fillStyle = '#4ade80';
+        ctx.beginPath(); ctx.arc(dx, dy, d.size, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    // Teto interno
+    ctx.beginPath(); ctx.arc(0, 0, rIn, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(74, 222, 128, 0.25)'; ctx.lineWidth = 3; ctx.stroke();
+    // Luz neon de teto
+    ctx.beginPath(); ctx.arc(0, 0, rIn + 3, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(74, 222, 128, 0.08)'; ctx.lineWidth = 1; ctx.stroke();
 
     // Módulos
+    let activeMod = null;
     modules.forEach(m => {
-        const isActive = m === currentActiveModule;
-        drawModule(m, isActive);
+        if (drawModule(m, false)) {
+            if (!activeMod) activeMod = m;
+        }
     });
+    // Segundo passo: desenha o ativo por cima com destaque
+    if (activeMod) {
+        drawModule(activeMod, true);
+        sfx.updateProximity(activeMod.type, 1);
+    } else {
+        sfx.updateProximity(null, 0);
+    }
+    currentActiveModule = activeMod;
 
     // Astronauta
+    ctx.save();
+    ctx.rotate(playerAngle);
+    ctx.translate(ringRadius + ringWidth / 2 - 22, 0);
+    ctx.rotate(-Math.PI / 2);
     drawAstronaut(time, playerVel);
     ctx.restore();
-}
 
-// ─── LOOP ─────────────────────────────────────────────────────────────────────
-function loop() {
-    update();
-    draw();
+    // Linha do CHÃO — por cima de tudo
+    ctx.beginPath(); ctx.arc(0, 0, rOut, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(74, 222, 128, 0.85)'; ctx.lineWidth = 4; ctx.stroke();
+
+    ctx.restore(); // fim da translação do anel
+
+    // UI — módulo ativo
+    if (currentActiveModule) {
+        mTitle.innerText = currentActiveModule.name;
+        mTitle.style.color = currentActiveModule.color;
+        mTitle.style.textShadow = `0 0 14px ${currentActiveModule.color}`;
+        mDesc.innerText = currentActiveModule.desc;
+        mCard.classList.add('visible');
+        actBtn.classList.add('active');
+        actBtn.style.background = currentActiveModule.color;
+        actBtn.style.boxShadow = `0 0 30px ${currentActiveModule.color}55`;
+
+        if (currentActiveModule.type === 'exit') {
+            actBtn.innerHTML = '<b>SAIR DO<br>HABITAT</b>';
+        } else if (currentActiveModule.type === 'terminal') {
+            actBtn.innerHTML = '<b>VER<br>TERMINAL</b>';
+        } else if (currentActiveModule.type === 'john_bunk') {
+            actBtn.innerHTML = '<b>EXAMINAR<br>BELICHE</b>';
+        } else {
+            actBtn.innerHTML = '<b>EXAMINAR<br>MÓDULO</b>';
+        }
+    } else {
+        mCard.classList.remove('visible');
+        actBtn.classList.remove('active');
+    }
+
     requestAnimationFrame(loop);
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-resize();
-window.addEventListener('resize', resize);
-loop();
+window.onload = loop;
 </script>
 </body>
 </html>
