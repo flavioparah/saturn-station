@@ -760,7 +760,7 @@ function loop(){
     currentActiveModule=activeMod;
 
     // astronauta
-    ctx.save(); ctx.rotate(playerAngle); ctx.translate(rOut-22,0); ctx.rotate(-Math.PI/2); drawAstronaut(time,playerVel); ctx.restore();
+    ctx.save(); ctx.rotate(playerAngle); ctx.translate(rOut-26,0); ctx.rotate(-Math.PI/2); drawAstronaut(time,playerVel); ctx.restore();
 
     // chao
     ctx.beginPath(); ctx.arc(0,0,rOut,0,Math.PI*2); ctx.strokeStyle='rgba(134,239,172,0.82)'; ctx.lineWidth=8; ctx.stroke();
