@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TIMEWAYS - Bio-Dome A1</title>
+    <style>
+        :root {
+            --neon: #22c55e;
+            --neon-dim: rgba(34, 197, 94, 0.15);
+            --bg: #010205;
+            --panel: rgba(10, 20, 14, 0.92);
+            --amber: #fbbf24;
+            --cold: #7dd3fc;
+            --plant-green: #16a34a;
+            --water-blue: #06b6d4;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            font-family: 'Orbitron', sans-serif;
+            color: white;
+        }
+
+        #stage {
+            position: relative;
+            width: 100vw; height: 100vh;
+            background: #000;
+        }
+
+        canvas { display: block; position: absolute; inset: 0; z-index: 5; }
+
+        /* UI OVERLAY */
+        #ui-top {
+            position: absolute;
+            top: 50px; left: 30px;
+            border-left: 4px solid var(--neon);
+            padding-left: 15px;
+            z-index: 100;
+            text-shadow: 0 0 10px var(--neon);
+        }
+
+        .label { font-size: 10px; text-transform: uppercase; letter-spacing: 3px; opacity: 0.6; font-weight: 400; }
+        .value { font-weight: 900; font-size: 18px; color: var(--neon); letter-spacing: 2px; }
+
+        /* STATUS LOG */
+        #status-log {
+            position: absolute;
+            top: 50px; right: 30px;
+            width: 200px;
+            z-index: 100;
+            text-align: right;
+            opacity: 0;
+            animation: fadeIn 3s ease 2s forwards;
+        }
+
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        .status-line {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 10px;
+            color: rgba(34, 197, 94, 0.5);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            line-height: 1.8;
+        }
+
+        #module-card {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 280px;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            pointer-events: none;
+            z-index: 10;
+        }
+        #module-card.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+        .mod-name {
+            font-size: 16px; font-weight: 900;
+            color: var(--neon); margin-bottom: 8px;
+            letter-spacing: 3px;
+            text-shadow: 0 0 15px var(--neon);
+        }
+        .mod-desc {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 11px; color: #94a3b8;
+            line-height: 1.6; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        /* CONTROLS */
+        .controls-container {
+            position: absolute;
+            bottom: 100px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; justify-content: center; align-items: center;
+            gap: 30px;
+            pointer-events: auto; z-index: 100;
+        }
+
+        .nav-btn {
+            width: 65px; height: 65px;
+            background: rgba(10, 20, 14, 0.9);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            border-radius: 50%;
+            color: var(--neon);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .nav-btn:active { background: var(--neon); color: black; box-shadow: 0 0 20px var(--neon); }
+
+        #action-btn {
+            width: 105px; height: 105px;
+            background: var(--neon);
+            color: #000; border: none;
+            border-radius: 50%; font-weight: 900;
+            font-size: 9px; cursor: pointer;
+            box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; text-transform: uppercase;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: scale(0); opacity: 0;
+            line-height: 1.2; text-align: center; flex-shrink: 0;
+        }
+        #action-btn.active { transform: scale(1); opacity: 1; }
+
+        /* MENSAGEM ATMOSFÉRICA */
+        #atm-msg {
+            position: absolute;
+            bottom: 30px; left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 11px;
+            color: rgba(34, 197, 94, 0.35);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            text-align: center;
+            white-space: nowrap;
+            z-index: 100;
+            animation: breathe 6s ease-in-out infinite;
+        }
+        @keyframes breathe {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        #audio-hint {
+            position: absolute; top: 20px; right: 20px;
+            font-size: 9px; color: var(--neon); opacity: 0.4; z-index: 200;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="stage">
+    <div id="audio-hint">CLIQUE PARA ATIVAR ÁUDIO</div>
+
+    <canvas id="game"></canvas>
+
+    <div id="ui-top">
+        <div class="label">SATURN STATION // BIO-DOME A1</div>
+        <div class="value">SAÚDE: 87%</div>
+    </div>
+
+    <div id="status-log">
+        <div class="status-line">CULTIVO ATIVO</div>
+        <div class="status-line">UMIDADE: 78%</div>
+        <div class="status-line">LUZ: 2200 LUX</div>
+        <div class="status-line">TEMP: 22.3°C</div>
+    </div>
+
+    <div id="module-card">
+        <div class="mod-name" id="m-title">—</div>
+        <div class="mod-desc" id="m-desc">Aguardando...</div>
+    </div>
+
+    <div class="controls-container">
+        <div id="btn-left" class="nav-btn">◀</div>
+        <button id="action-btn">INTERAGIR</button>
+        <div id="btn-right" class="nav-btn">▶</div>
+    </div>
+
+    <div id="atm-msg">ECOSSISTEMA EM EQUILÍBRIO</div>
+</div>
+
+<script>
+// ─── ÁUDIO PROCEDURAL ────────────────────────────────────────────────────────
+class BioDomeAudio {
+    constructor() {
+        this.ctx = null;
+        this.initialized = false;
+        this.ambientGain = null;
+        this.waterGain = null;
+    }
+
+    init() {
+        if (this.initialized) return;
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this._setupAmbient();
+        this._setupWater();
+        this.initialized = true;
+        document.getElementById('audio-hint').style.display = 'none';
+    }
+
+    _setupAmbient() {
+        // Som ambiente: zumbido suave de sistemas de irrigação
+        const bufferSize = 3 * this.ctx.sampleRate;
+        const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+        noise.loop = true;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 400;
+
+        this.ambientGain = this.ctx.createGain();
+        this.ambientGain.gain.value = 0.025;
+
+        noise.connect(filter);
+        filter.connect(this.ambientGain);
+        this.ambientGain.connect(this.ctx.destination);
+        noise.start();
+    }
+
+    _setupWater() {
+        // Som de água fluindo — gotejamento suave
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(45, this.ctx.currentTime);
+
+        const lfo = this.ctx.createOscillator();
+        const lfoG = this.ctx.createGain();
+        lfo.frequency.value = 0.06;
+        lfoG.gain.value = 2;
+        lfo.connect(lfoG);
+        lfoG.connect(osc.frequency);
+        lfo.start();
+
+        this.waterGain = this.ctx.createGain();
+        this.waterGain.gain.value = 0.012;
+        osc.connect(this.waterGain);
+        this.waterGain.connect(this.ctx.destination);
+        osc.start();
+    }
+
+    playInteract() {
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(620, t);
+        osc.frequency.exponentialRampToValueAtTime(380, t + 0.15);
+        g.gain.setValueAtTime(0.06, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        osc.connect(g); g.connect(this.ctx.destination);
+        osc.start(); osc.stop(t + 0.22);
+    }
+
+    playNav() {
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, t);
+        g.gain.setValueAtTime(0.04, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        osc.connect(g); g.connect(this.ctx.destination);
+        osc.start(); osc.stop(t + 0.12);
+    }
+}
+
+const sfx = new BioDomeAudio();
+
+// ─── CANVAS ──────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const mCard = document.getElementById('module-card');
+const mTitle = document.getElementById('m-title');
+const mDesc = document.getElementById('m-desc');
+const actBtn = document.getElementById('action-btn');
+
+let w, h, cx, cy, ringRadius, ringWidth;
+let playerAngle = 0;
+let stationRot = 0;
+let playerVel = 0;
+let input = 0;
+let time = 0;
+let stars = [];
+let lastStep = 0;
+let currentActiveModule = null;
+
+// ─── MÓDULOS DO BIO-DOME ──────────────────────────────────────────────────────
+const modules = [
+    {
+        angle: 0,
+        name: "HORTA PRINCIPAL",
+        desc: "Filas de plantas em crescimento. Tomates, alface, feijão. Sistemas de LED crescimento em pleno funcionamento.",
+        color: "#22c55e",
+        type: "plants",
+        link: null
+    },
+    {
+        angle: Math.PI / 3,
+        name: "SISTEMA DE IRRIGAÇÃO",
+        desc: "Tubagens hidráulicas em cascata. Água reciclada da condensação. Sensores de umidade calibrados.",
+        color: "#06b6d4",
+        type: "irrigation",
+        link: null
+    },
+    {
+        angle: (Math.PI / 3) * 2,
+        name: "ESTAÇÃO DE FERRAMENTAS",
+        desc: "Tesouras de poda, luvas de cultivo, medidores de pH. Tudo organizado com precisão militar.",
+        color: "#fbbf24",
+        type: "tools",
+        link: null
+    },
+    {
+        angle: Math.PI,
+        name: "COMPOSTAGEM ORGÂNICA",
+        desc: "Resíduos biodegradáveis em decomposição. Nutrientes para o solo. Ciclo fechado perfeito.",
+        color: "#a78bfa",
+        type: "compost",
+        link: null
+    },
+    {
+        angle: (Math.PI / 3) * 4,
+        name: "PAINEL DE CONTROLE",
+        desc: "Monitoramento em tempo real. Temperatura, umidade, níveis de CO2. Tudo sob controle.",
+        color: "#f87171",
+        type: "control",
+        link: null
+    },
+    {
+        angle: (Math.PI / 3) * 5,
+        name: "RETORNO — HABITAT A1",
+        desc: "Porta de saída para o habitat. Ar fresco de oxigénio da estufa.",
+        color: "#22c55e",
+        type: "exit",
+        link: "habitat.html" // <--- EDITE AQUI se quiser mudar o destino
+    }
+];
+
+// ─── PARTÍCULAS (PÓLEN/ESPOROS) ───────────────────────────────────────────────
+const particles = Array.from({ length: 60 }, () => ({
+    angle: Math.random() * Math.PI * 2,
+    r: (Math.random() * 0.3 + 0.05),
+    speed: (Math.random() - 0.5) * 0.0004,
+    size: Math.random() * 1.5 + 0.4,
+    opacity: Math.random() * 0.25 + 0.05
+}));
+
+// ─── ESTRELAS ─────────────────────────────────────────────────────────────────
+function initStars() {
+    stars = [];
+    for (let i = 0; i < 250; i++) {
+        stars.push({
+            x: (Math.random() - 0.5) * 2200,
+            y: (Math.random() - 0.5) * 2200,
+            s: Math.random() * 1.4 + 0.2,
+            o: Math.random() * 0.7 + 0.1
+        });
+    }
+}
+
+// ─── RESIZE ───────────────────────────────────────────────────────────────────
+function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    cx = w / 2; cy = h / 2;
+    ringRadius = Math.min(w, h) * 0.27;
+    ringWidth = ringRadius * 0.60;
+    if (stars.length === 0) initStars();
+}
+
+// ─── INPUT ────────────────────────────────────────────────────────────────────
+const setInput = (id, val) => {
+    const el = document.getElementById(id);
+    const start = (e) => {
+        e.preventDefault();
+        sfx.init(); input = val; sfx.playNav();
+    };
+    const end = () => { if (input === val) input = 0; };
+    el.addEventListener('mousedown', start);
+    el.addEventListener('touchstart', start, { passive: false });
+    window.addEventListener('mouseup', end);
+    window.addEventListener('touchend', end);
+};
+setInput('btn-left', 0.0012);
+setInput('btn-right', -0.0012);
+
+window.addEventListener('keydown', (e) => {
+    sfx.init();
+    const k = e.key.toLowerCase();
+    if (k === 'a' || k === 'arrowleft') input = 0.0012;
+    if (k === 'd' || k === 'arrowright') input = -0.0012;
+    if (e.key === 'Enter') triggerAction();
+});
+window.addEventListener('keyup', (e) => {
+    const k = e.key.toLowerCase();
+    if ((k === 'a' || k === 'arrowleft') && input > 0) input = 0;
+    if ((k === 'd' || k === 'arrowright') && input < 0) input = 0;
+});
+window.addEventListener('click', () => sfx.init());
+
+// ─── AÇÃO ─────────────────────────────────────────────────────────────────────
+function triggerAction() {
+    if (!currentActiveModule) return;
+    sfx.init(); sfx.playInteract();
+    if (currentActiveModule.link) {
+        actBtn.style.transform = 'scale(0.92)';
+        // COMENTÁRIO: O redirecionamento para a próxima página ocorre aqui.
+        // Se você quiser executar um código personalizado ao sair, pode colá-lo abaixo.
+        setTimeout(() => { 
+            window.location.href = currentActiveModule.link; 
+        }, 120);
+    }
+}
+actBtn.addEventListener('click', triggerAction);
+
+// ─── DESENHO: ASTRONAUTA ──────────────────────────────────────────────────────
+function drawAstronaut(t, vel) {
+    ctx.save();
+    const moving = Math.abs(vel) > 0.0004;
+    const animSpeed = 11;
+    const walkPhase = moving ? Math.sin(t * animSpeed) : 0;
+
+    const white = '#e2e8f0';
+    const bodyGrey = '#334155';
+    const helmetDark = '#0f172a';
+    const green = '#22c55e';
+
+    ctx.translate(cx, cy);
+    ctx.rotate(playerAngle);
+
+    ctx.save();
+    const bounce = moving ? Math.abs(Math.sin(t * animSpeed)) * 1.3 : 0;
+    ctx.translate(0, -bounce - 2);
+
+    ctx.fillStyle = '#334155'; ctx.beginPath();
+    ctx.roundRect(-14, -28, 10, 24, 4); ctx.fill();
+    ctx.fillStyle = white; ctx.beginPath();
+    ctx.roundRect(-12, -32, 24, 32, [8, 8, 4, 4]); ctx.fill();
+
+    ctx.fillStyle = green;
+    ctx.globalAlpha = 0.5 + Math.sin(t * 4) * 0.5;
+    ctx.fillRect(-5, -22, 10, 2);
+    ctx.globalAlpha = 1;
+
+    ctx.save(); ctx.translate(-10, -25); ctx.rotate(moving ? -walkPhase * 0.8 : 0.2);
+    ctx.fillStyle = bodyGrey; ctx.beginPath();
+    ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill(); ctx.restore();
+
+    ctx.save(); ctx.translate(10, -25); ctx.rotate(moving ? walkPhase * 0.8 : -0.2);
+    ctx.fillStyle = white; ctx.beginPath();
+    ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill(); ctx.restore();
+
+    ctx.save(); ctx.translate(0, -38);
+    ctx.fillStyle = white; ctx.beginPath();
+    ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = helmetDark; ctx.beginPath();
+    ctx.ellipse(4, -1, 11, 8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    ctx.restore(); ctx.restore();
+}
+
+// ─── DESENHO: MÓDULOS ─────────────────────────────────────────────────────────
+function drawModule(m, isActive) {
+    ctx.save();
+    ctx.rotate(m.angle);
+
+    const outer = ringRadius + ringWidth / 2;
+    const inner = ringRadius - ringWidth / 2;
+    const mid   = ringRadius;
+    const pulse  = 0.5 + Math.sin(time * (m.type === 'control' ? 8 : 2.5)) * 0.5;
+    const glow   = isActive ? 1 : 0.55;
+
+    // ── LUZES NO TETO ──────────────────────────────────────────────────────────
+    const lightSpacing = 18;
+    const numLights = 3;
+    for (let i = 0; i < numLights; i++) {
+        const ly = -lightSpacing + i * lightSpacing;
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(inner + 1, ly - 1, 5, 3);
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath(); ctx.roundRect(inner + 1, ly + 2, 5, 7, 2); ctx.fill();
+        const litColor = m.color;
+        ctx.fillStyle = litColor;
+        ctx.globalAlpha = (0.4 + pulse * 0.5) * glow;
+        ctx.beginPath(); ctx.roundRect(inner + 2, ly + 3, 3, 5, 1); ctx.fill();
+        ctx.globalAlpha = 0.06 * glow;
+        ctx.fillStyle = litColor;
+        ctx.beginPath(); ctx.arc(inner + 3.5, ly + 5, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+
+    // ── HORTA PRINCIPAL ────────────────────────────────────────────────────────
+    if (m.type === 'plants') {
+        const W = 50; const H = 85; const x = outer - W;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(x, -H/2, W, H);
+        ctx.strokeStyle = isActive ? m.color : '#334155';
+        ctx.lineWidth = isActive ? 1.5 : 1;
+        ctx.strokeRect(x, -H/2, W, H);
+
+        // Plantas em fileiras
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 2; col++) {
+                const px = x + 8 + col * 18;
+                const py = -H/2 + 15 + row * 20;
+                
+                // Vaso
+                ctx.fillStyle = '#475569';
+                ctx.beginPath(); ctx.ellipse(px, py + 8, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#334155';
+                ctx.beginPath(); ctx.roundRect(px - 5, py, 10, 8, 2); ctx.fill();
+
+                // Folhas (verde)
+                ctx.fillStyle = '#22c55e';
+                ctx.globalAlpha = 0.7 + Math.sin(time * 2 + row * col) * 0.3;
+                for (let l = 0; l < 3; l++) {
+                    const angle = (l * Math.PI / 1.5) - Math.PI / 3;
+                    const lx = px + Math.cos(angle) * 7;
+                    const ly = py - 3 + Math.sin(angle) * 6;
+                    ctx.beginPath(); ctx.ellipse(lx, ly, 2.5, 5, angle, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        if (isActive) {
+            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
+            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
+            ctx.strokeRect(x, -H/2, W, H); ctx.restore();
+        }
+    }
+
+    // ── SISTEMA DE IRRIGAÇÃO ──────────────────────────────────────────────────
+    else if (m.type === 'irrigation') {
+        const W = 48; const H = 80; const x = outer - W;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(x, -H/2, W, H);
+        ctx.strokeStyle = isActive ? m.color : '#334155';
+        ctx.lineWidth = isActive ? 1.5 : 1;
+        ctx.strokeRect(x, -H/2, W, H);
+
+        // Tubagens principais
+        ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.6 + pulse * 0.4;
+        ctx.beginPath(); ctx.moveTo(x + 10, -H/2 + 5); ctx.lineTo(x + 10, H/2 - 5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + W - 10, -H/2 + 5); ctx.lineTo(x + W - 10, H/2 - 5); ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Conexões horizontais (água fluindo)
+        for (let i = 0; i < 4; i++) {
+            const y = -H/2 + 12 + i * 18;
+            ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.4 + Math.sin(time * 3 + i) * 0.4;
+            ctx.beginPath(); ctx.moveTo(x + 10, y); ctx.lineTo(x + W - 10, y); ctx.stroke();
+            
+            // Gotículas
+            ctx.fillStyle = '#06b6d4';
+            ctx.globalAlpha = 0.7;
+            const dropX = x + 12 + ((time * 20 + i * 15) % (W - 24));
+            ctx.beginPath(); ctx.arc(dropX, y, 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // Válvulas de controle
+        ctx.fillStyle = '#334155';
+        for (let v = 0; v < 3; v++) {
+            ctx.beginPath(); ctx.arc(x + 24 + v * 12, H/2 - 8, 3, 0, Math.PI * 2); ctx.fill();
+        }
+
+        if (isActive) {
+            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
+            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
+            ctx.strokeRect(x, -H/2, W, H); ctx.restore();
+        }
+    }
+
+    // ── ESTAÇÃO DE FERRAMENTAS ────────────────────────────────────────────────
+    else if (m.type === 'tools') {
+        const W = 52; const H = 82; const x = outer - W;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(x, -H/2, W, H);
+        ctx.strokeStyle = isActive ? m.color : '#334155';
+        ctx.lineWidth = isActive ? 1.5 : 1;
+        ctx.strokeRect(x, -H/2, W, H);
+
+        // Prateleiras
+        for (let shelf = 0; shelf < 4; shelf++) {
+            const sy = -H/2 + 10 + shelf * 18;
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(x + 3, sy, W - 6, 2);
+            
+            // Ferramentas na prateleira
+            ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.5;
+            
+            // Tesoura
+            if (shelf === 0) {
+                ctx.beginPath(); ctx.arc(x + 12, sy + 6, 3, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(x + 18, sy + 6, 3, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x + 12, sy + 6); ctx.lineTo(x + 18, sy + 6); ctx.stroke();
+            }
+            // Luvas
+            else if (shelf === 1) {
+                ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.6;
+                ctx.beginPath(); ctx.roundRect(x + 10, sy + 4, 6, 5, 1); ctx.fill();
+                ctx.beginPath(); ctx.roundRect(x + 18, sy + 4, 6, 5, 1); ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+            // Medidor
+            else if (shelf === 2) {
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath(); ctx.roundRect(x + 12, sy + 3, 12, 7, 2); ctx.fill();
+                ctx.fillStyle = '#0f172a';
+                ctx.fillText('pH', x + 14, sy + 8);
+            }
+        }
+
+        if (isActive) {
+            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
+            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
+            ctx.strokeRect(x, -H/2, W, H); ctx.restore();
+        }
+    }
+
+    // ── COMPOSTAGEM ────────────────────────────────────────────────────────────
+    else if (m.type === 'compost') {
+        const W = 50; const H = 80; const x = outer - W;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(x, -H/2, W, H);
+        ctx.strokeStyle = isActive ? m.color : '#334155';
+        ctx.lineWidth = isActive ? 1.5 : 1;
+        ctx.strokeRect(x, -H/2, W, H);
+
+        // Camadas de compostagem
+        const colors = ['#78350f', '#92400e', '#a16207', '#b45309'];
+        for (let layer = 0; layer < 4; layer++) {
+            const ly = -H/2 + 8 + layer * 18;
+            ctx.fillStyle = colors[layer];
+            ctx.globalAlpha = 0.6 + Math.sin(time * 1.5 + layer) * 0.3;
+            ctx.fillRect(x + 5, ly, W - 10, 14);
+            
+            // Partículas de decomposição
+            for (let p = 0; p < 3; p++) {
+                ctx.fillStyle = '#fbbf24';
+                ctx.globalAlpha = 0.3;
+                const px = x + 8 + p * 12;
+                const py = ly + 4 + Math.sin(time * 2 + p) * 3;
+                ctx.beginPath(); ctx.arc(px, py, 1, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+        ctx.globalAlpha = 1;
+
+        if (isActive) {
+            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
+            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
+            ctx.strokeRect(x, -H/2, W, H); ctx.restore();
+        }
+    }
+
+    // ── PAINEL DE CONTROLE ─────────────────────────────────────────────────────
+    else if (m.type === 'control') {
+        const W = 50; const H = 75; const x = outer - W;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(x, -H/2, W, H);
+        ctx.strokeStyle = isActive ? m.color : '#334155';
+        ctx.lineWidth = isActive ? 1.5 : 1;
+        ctx.strokeRect(x, -H/2, W, H);
+
+        // Tela do monitor
+        ctx.fillStyle = '#1c0505';
+        ctx.fillRect(x + 4, -H/2 + 4, W - 8, 30);
+        ctx.strokeStyle = '#f87171'; ctx.lineWidth = 1;
+        ctx.strokeRect(x + 4, -H/2 + 4, W - 8, 30);
+
+        // Dados na tela
+        ctx.fillStyle = '#22c55e'; ctx.globalAlpha = 0.6 + pulse * 0.4;
+        ctx.font = '3px Orbitron, monospace';
+        ctx.fillText('TEMP: 22.3C', x + 6, -H/2 + 12);
+        ctx.fillText('HUM: 78%', x + 6, -H/2 + 18);
+        ctx.fillText('CO2: 420ppm', x + 6, -H/2 + 24);
+        ctx.globalAlpha = 1;
+
+        // Botões de controle
+        ctx.fillStyle = '#334155';
+        for (let b = 0; b < 4; b++) {
+            ctx.beginPath(); ctx.arc(x + 10 + b * 10, H/2 - 12, 2.5, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // LEDs indicadores
+        ctx.fillStyle = '#22c55e'; ctx.globalAlpha = pulse;
+        ctx.beginPath(); ctx.arc(x + W - 6, -H/2 + 8, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+
+        if (isActive) {
+            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
+            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
+            ctx.strokeRect(x, -H/2, W, H); ctx.restore();
+        }
+    }
+
+    // ── PORTA DE SAÍDA ─────────────────────────────────────────────────────────
+    else if (m.type === 'exit') {
+        const portalW = ringWidth * 0.45;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(inner + 2, -portalW/2, ringWidth - 4, portalW);
+        ctx.strokeStyle = isActive ? m.color : '#334155';
+        ctx.lineWidth = isActive ? 2 : 1;
+        if (isActive) {
+            ctx.shadowBlur = 20; ctx.shadowColor = m.color;
+            ctx.strokeRect(inner, -portalW/2 - 2, ringWidth, portalW + 4);
+            ctx.shadowBlur = 0;
+        } else {
+            ctx.strokeRect(inner, -portalW/2 - 2, ringWidth, portalW + 4);
+        }
+
+        const slide = isActive ? (portalW/2) * 0.7 : 0;
+        ctx.beginPath(); ctx.rect(inner+2, -portalW/2, ringWidth-4, portalW); ctx.clip();
+        ctx.fillStyle = isActive ? m.color : '#334155';
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect(inner+2, -portalW/2 - slide, ringWidth, portalW/2);
+        ctx.fillRect(inner+2, slide, ringWidth, portalW/2);
+        ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+}
+
+// ─── UPDATE ───────────────────────────────────────────────────────────────────
+function update() {
+    playerVel += input;
+    playerVel *= 0.92;
+    playerAngle += playerVel;
+    stationRot += playerVel * 0.3;
+    time += 0.016;
+
+    // Atualizar partículas
+    particles.forEach(p => { p.angle += p.speed; });
+
+    // Detectar módulo ativo
+    let minDist = Infinity;
+    let closest = null;
+    modules.forEach(m => {
+        let angleDiff = playerAngle - m.angle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        if (Math.abs(angleDiff) < minDist) {
+            minDist = Math.abs(angleDiff);
+            closest = m;
+        }
+    });
+
+    if (minDist < 0.3) {
+        if (currentActiveModule !== closest) {
+            currentActiveModule = closest;
+            mTitle.textContent = closest.name;
+            mDesc.textContent = closest.desc;
+            mCard.classList.add('visible');
+            actBtn.classList.add('active');
+        }
+    } else {
+        if (currentActiveModule) {
+            mCard.classList.remove('visible');
+            actBtn.classList.remove('active');
+            currentActiveModule = null;
+        }
+    }
+}
+
+// ─── DRAW ─────────────────────────────────────────────────────────────────────
+function draw() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+
+    // Estrelas
+    ctx.fillStyle = '#fff';
+    stars.forEach(s => {
+        ctx.globalAlpha = s.o;
+        ctx.beginPath(); ctx.arc(cx + s.x, cy + s.y, s.s, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    // Partículas (pólen)
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(stationRot);
+    particles.forEach(p => {
+        const x = Math.cos(p.angle) * ringRadius * p.r;
+        const y = Math.sin(p.angle) * ringRadius * p.r;
+        ctx.fillStyle = '#22c55e';
+        ctx.globalAlpha = p.opacity;
+        ctx.beginPath(); ctx.arc(x, y, p.size, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    // Anel principal
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(stationRot);
+    ctx.strokeStyle = 'rgba(34, 197, 94, 0.1)';
+    ctx.lineWidth = ringWidth;
+    ctx.beginPath(); ctx.arc(0, 0, ringRadius, 0, Math.PI * 2); ctx.stroke();
+
+    // Módulos
+    modules.forEach(m => {
+        const isActive = m === currentActiveModule;
+        drawModule(m, isActive);
+    });
+
+    // Astronauta
+    drawAstronaut(time, playerVel);
+    ctx.restore();
+}
+
+// ─── LOOP ─────────────────────────────────────────────────────────────────────
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+resize();
+window.addEventListener('resize', resize);
+loop();
+</script>
+</body>
+</html>
