@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar Industrial Puzzle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --radar-green: #00ff41;
+            --radar-red: #ff3131;
+            --radar-blue: #00d4ff;
+            --radar-dim: rgba(0, 255, 65, 0.2);
+            --screen-bg: #050805;
+        }
+
+        body {
+            background-color: #0d0d0d;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif;
+            user-select: none;
+            touch-action: none;
+        }
+
+        /* Painel Industrial */
+        .iron-panel {
+            background: linear-gradient(145deg, #333, #1a1a1a);
+            border: 10px solid #2a2a2a;
+            border-radius: 40px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3), inset 0 0 40px rgba(0,0,0,0.8), 10px 20px 60px rgba(0,0,0,1);
+            padding: 35px;
+            position: relative;
+            width: 95vw;
+            max-width: 450px;
+            transition: border-color 0.5s;
+            outline: 2px solid var(--radar-blue);
+        }
+
+        .panel-failed { outline-color: var(--radar-red); border-color: #3d1010; }
+        .panel-success { outline-color: #fff; border-color: #444; }
+
+        .screw {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: radial-gradient(circle at 30% 30%, #666, #222);
+            border-radius: 50%;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+            z-index: 5;
+        }
+        .top-left { top: 15px; left: 15px; }
+        .top-right { top: 15px; right: 15px; }
+        .bottom-left { bottom: 15px; left: 15px; }
+        .bottom-right { bottom: 15px; right: 15px; }
+
+        .radar-display {
+            background: var(--screen-bg);
+            border: 12px solid #222;
+            border-radius: 50%;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto 25px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(0, 255, 65, 0.15), 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        .radar-sweep {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(0, 255, 65, 0.5) 100%);
+            left: 50%;
+            transform-origin: left center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .radar-grid {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(circle, transparent 20%, var(--radar-dim) 21%, transparent 22%),
+                radial-gradient(circle, transparent 40%, var(--radar-dim) 41%, transparent 42%),
+                radial-gradient(circle, transparent 60%, var(--radar-dim) 61%, transparent 62%),
+                radial-gradient(circle, transparent 80%, var(--radar-dim) 81%, transparent 82%);
+            pointer-events: none;
+        }
+
+        .crosshair-v { position: absolute; left: 50%; width: 1px; height: 100%; background: var(--radar-dim); }
+        .crosshair-h { position: absolute; top: 50%; width: 100%; height: 1px; background: var(--radar-dim); }
+
+        .blip {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--radar-green);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--radar-green);
+            opacity: 0;
+            transform: translate(-50%, -50%);
+            transition: opacity 1.2s cubic-bezier(0, 1, 0.5, 1);
+            pointer-events: none;
+        }
+
+        .blip.detected { opacity: 1; transition: none; }
+        .blip.found { opacity: 1 !important; background: #fff; box-shadow: 0 0 20px #fff; transition: none; }
+
+        .digital-box {
+            background: #0a0c0a;
+            border: 2px solid #333;
+            padding: 15px;
+            border-radius: 12px;
+            color: var(--radar-green);
+            font-family: 'JetBrains Mono', monospace;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            min-height: 115px;
+        }
+
+        #log-msg {
+            font-size: 0.75rem;
+            line-height: 1.3;
+            margin-bottom: 8px;
+            height: 3.5em; 
+            display: flex;
+            align-items: center;
+        }
+
+        .stat-label { font-size: 0.65rem; color: #00661a; text-transform: uppercase; }
+        .stat-value { font-size: 1rem; color: var(--radar-green); font-weight: bold; }
+
+        .timer-active { color: var(--radar-red) !important; animation: pulse-text 0.5s infinite; }
+        @keyframes pulse-text { 50% { opacity: 0.5; } }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .btn-industrial {
+            background: linear-gradient(to bottom, #444, #222);
+            border: 1px solid #555;
+            border-bottom: 5px solid #000;
+            color: #ccc;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.1s;
+            cursor: pointer;
+        }
+
+        .btn-industrial:active {
+            border-bottom-width: 1px;
+            transform: translateY(4px);
+        }
+
+        .btn-start-active {
+            background: linear-gradient(to bottom, #008822, #004411);
+            color: #fff;
+            border-color: #00ff41;
+        }
+
+        .btn-exit {
+            background: linear-gradient(to bottom, #661111, #330000);
+            border-color: #ff4444;
+            color: #ffcccc;
+        }
+
+        .failed-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 0, 0, 0.4);
+            display: none;
+            z-index: 100;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="iron-panel" id="main-panel">
+        <div class="screw top-left"></div>
+        <div class="screw top-right"></div>
+        <div class="screw bottom-left"></div>
+        <div class="screw bottom-right"></div>
+
+        <div class="radar-display" id="radar-screen">
+            <div class="failed-overlay" id="fail-gfx"></div>
+            <div class="crosshair-v"></div>
+            <div class="crosshair-h"></div>
+            <div class="radar-grid"></div>
+            <div class="radar-sweep" id="sweep-hand"></div>
+            <div id="targets-container"></div>
+        </div>
+
+        <div class="digital-box">
+            <div id="log-msg">> SISTEMA AGUARDANDO INICIALIZAÇÃO</div>
+            
+            <div class="grid grid-cols-3 gap-4 border-t border-green-900/30 pt-3 mt-2">
+                <div>
+                    <div class="stat-label">Estado</div>
+                    <div class="stat-value text-blue-400" id="ui-status">READY</div>
+                </div>
+                <div>
+                    <div class="stat-label">Relógio</div>
+                    <div class="stat-value" id="ui-timer">00:10</div>
+                </div>
+                <div>
+                    <div class="stat-label">Captura</div>
+                    <div class="stat-value text-green-400" id="ui-count">0/15</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="scan-btn" class="btn-industrial" onclick="toggleScanner()">INICIAR</button>
+            <button class="btn-industrial btn-exit" onclick="exitToHome()">SAIR</button>
+        </div>
+    </div>
+
+    <script>
+        const screen = document.getElementById('radar-screen');
+        const container = document.getElementById('targets-container');
+        const sweepHand = document.getElementById('sweep-hand');
+        const logMsg = document.getElementById('log-msg');
+        const uiTimer = document.getElementById('ui-timer');
+        const uiCount = document.getElementById('ui-count');
+        const uiStatus = document.getElementById('ui-status');
+        const mainPanel = document.getElementById('main-panel');
+        const failGfx = document.getElementById('fail-gfx');
+        const scanBtn = document.getElementById('scan-btn');
+
+        let targets = [];
+        let isRunning = false;
+        let isGameOver = false;
+        let found = 0;
+        let totalTargets = 15; // Atualizado para 15 objetos
+        let timeLeft = 10;
+        let timerInterval;
+        let sweepAngle = 0;
+        let audioCtx = null;
+        let animationFrame;
+        let ambientOsc = null;
+        let ambientGain = null;
+
+        const CENTER = 150;
+        const RADIUS_LIMIT = 140;
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playSynth(freq, type, duration, volume, slideTo = null) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            if (slideTo) {
+                osc.frequency.exponentialRampToValueAtTime(slideTo, audioCtx.currentTime + duration);
+            }
+
+            gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+            osc.connect(gain).connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function startAmbient() {
+            if (!audioCtx) return;
+            ambientOsc = audioCtx.createOscillator();
+            ambientGain = audioCtx.createGain();
+            ambientOsc.type = 'sawtooth';
+            ambientOsc.frequency.setValueAtTime(40, audioCtx.currentTime);
+            ambientGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+            
+            const lpf = audioCtx.createBiquadFilter();
+            lpf.type = 'lowpass';
+            lpf.frequency.value = 100;
+
+            ambientOsc.connect(lpf).connect(ambientGain).connect(audioCtx.destination);
+            ambientOsc.start();
+        }
+
+        function stopAmbient() {
+            if (ambientGain) {
+                ambientGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+                setTimeout(() => { if (ambientOsc) ambientOsc.stop(); }, 500);
+            }
+        }
+
+        function playPing() { playSynth(800, 'sine', 0.2, 0.05); }
+        function playCapture() { playSynth(400, 'triangle', 0.3, 0.1, 1200); }
+        function playFail() { playSynth(150, 'sawtooth', 0.8, 0.2, 40); }
+        function playVictorySound() {
+            [440, 554, 659, 880].forEach((f, i) => {
+                setTimeout(() => playSynth(f, 'square', 0.4, 0.05), i * 150);
+            });
+        }
+
+        function initTargets() {
+            container.innerHTML = '';
+            targets = [];
+            found = 0;
+            uiCount.innerText = `0/${totalTargets}`;
+            
+            for(let i=0; i<totalTargets; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 30 + Math.random() * 90;
+                const x = CENTER + Math.cos(angle) * dist;
+                const y = CENTER + Math.sin(angle) * dist;
+                
+                const moveAngle = Math.random() * Math.PI * 2;
+                const speed = 0.5 + (Math.random() * 1.5); 
+
+                const el = document.createElement('div');
+                el.className = 'blip';
+                el.style.left = `${x}px`;
+                el.style.top = `${y}px`;
+                
+                targets.push({ 
+                    x, y, 
+                    vx: Math.cos(moveAngle) * speed,
+                    vy: Math.sin(moveAngle) * speed,
+                    found: false, 
+                    el 
+                });
+                container.appendChild(el);
+            }
+        }
+
+        function updatePositions() {
+            targets.forEach(t => {
+                if (t.found) return;
+                t.x += t.vx;
+                t.y += t.vy;
+                const dx = t.x - CENTER;
+                const dy = t.y - CENTER;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                if (distance > RADIUS_LIMIT) {
+                    const nx = dx / distance;
+                    const ny = dy / distance;
+                    const dot = t.vx * nx + t.vy * ny;
+                    t.vx = t.vx - 2 * dot * nx;
+                    t.vy = t.vy - 2 * dot * ny;
+                    t.x = CENTER + nx * RADIUS_LIMIT;
+                    t.y = CENTER + ny * RADIUS_LIMIT;
+                }
+                t.el.style.left = `${t.x}px`;
+                t.el.style.top = `${t.y}px`;
+            });
+        }
+
+        function animate() {
+            if (!isRunning || isGameOver) return;
+            sweepAngle = (sweepAngle + 4.5) % 360; // Ligeiramente mais rápido para 15 alvos
+            sweepHand.style.transform = `rotate(${sweepAngle}deg)`;
+            updatePositions();
+
+            targets.forEach(t => {
+                if (!t.found) {
+                    const targetAngle = (Math.atan2(t.y - CENTER, t.x - CENTER) * 180 / Math.PI + 360) % 360;
+                    const diff = Math.abs(sweepAngle - targetAngle);
+                    if (diff < 9 || diff > 351) {
+                        t.el.classList.add('detected');
+                        if (diff < 2) playPing();
+                        setTimeout(() => t.el.classList.remove('detected'), 200);
+                    }
+                }
+            });
+            animationFrame = requestAnimationFrame(animate);
+        }
+
+        function handleInteraction(e) {
+            if (!isRunning || isGameOver) return;
+            initAudio();
+            
+            const rect = screen.getBoundingClientRect();
+            const touch = e.touches ? e.touches[0] : e;
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+
+            targets.forEach(t => {
+                if (!t.found) {
+                    const d = Math.hypot(t.x - x, t.y - y);
+                    // Hitbox ligeiramente maior (35px) para compensar a densidade de 15 alvos
+                    if (d < 35) {
+                        t.found = true;
+                        t.el.classList.add('found');
+                        found++;
+                        uiCount.innerText = `${found}/${totalTargets}`;
+                        playCapture();
+                        logMsg.innerText = `> ALVO ${found} INTERCEPTADO`;
+                    }
+                }
+            });
+            if (found === totalTargets) victory();
+        }
+
+        function toggleScanner() {
+            initAudio();
+            if (isGameOver) {
+                resetGame();
+                return;
+            }
+            
+            isRunning = !isRunning;
+            if (isRunning) {
+                startAmbient();
+                scanBtn.innerText = "PARAR";
+                scanBtn.classList.add('btn-start-active');
+                uiStatus.innerText = "SCAN";
+                logMsg.innerText = "> VARREDURA EM CURSO... 10s RESTANTES";
+                if (!timerInterval) timerInterval = setInterval(updateTimer, 1000);
+                animate();
+            } else {
+                stopAmbient();
+                scanBtn.innerText = "INICIAR";
+                scanBtn.classList.remove('btn-start-active');
+                uiStatus.innerText = "PAUSE";
+                logMsg.innerText = "> SISTEMA EM PAUSA";
+                cancelAnimationFrame(animationFrame);
+            }
+        }
+
+        function updateTimer() {
+            if (!isRunning || isGameOver) return;
+            timeLeft--;
+            uiTimer.innerText = `00:${timeLeft.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 3) {
+                uiTimer.classList.add('timer-active');
+                playSynth(300, 'sine', 0.1, 0.1);
+            } else {
+                playSynth(200, 'sine', 0.05, 0.03);
+            }
+
+            if (timeLeft <= 0) gameOver();
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            isRunning = false;
+            stopAmbient();
+            clearInterval(timerInterval);
+            mainPanel.classList.add('panel-failed');
+            failGfx.style.display = 'block';
+            uiStatus.innerText = "FAIL";
+            logMsg.style.color = 'var(--radar-red)';
+            logMsg.innerText = "> RADAR CRÍTICO: 15 OBJETOS PERDIDOS";
+            scanBtn.innerText = "TENTAR";
+            scanBtn.classList.remove('btn-start-active');
+            playFail();
+        }
+
+        function victory() {
+            isRunning = false;
+            isGameOver = true;
+            stopAmbient();
+            clearInterval(timerInterval);
+            mainPanel.classList.add('panel-success');
+            uiStatus.innerText = "INFO";
+            uiStatus.style.color = "#fff";
+            logMsg.style.color = "#fff";
+            logMsg.innerText = "> SUCESSO: 15/15 objetos mapeados em órbita.";
+            scanBtn.innerText = "REPETIR";
+            scanBtn.classList.remove('btn-start-active');
+            playVictorySound();
+        }
+
+        function resetGame() {
+            cancelAnimationFrame(animationFrame);
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = null;
+            isRunning = false;
+            isGameOver = false;
+            timeLeft = 10;
+            found = 0;
+            mainPanel.className = 'iron-panel';
+            failGfx.style.display = 'none';
+            logMsg.style.color = 'var(--radar-green)';
+            logMsg.innerText = "> SISTEMA PRONTO: 10s";
+            uiTimer.innerText = "00:10";
+            uiTimer.classList.remove('timer-active');
+            uiStatus.innerText = "READY";
+            uiStatus.style.color = "var(--radar-blue)";
+            scanBtn.innerText = "INICIAR";
+            scanBtn.classList.remove('btn-start-active');
+            initTargets();
+        }
+
+        function exitToHome() {
+            window.location.href = "estaleiro.html";
+        }
+
+        screen.addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(e); }, {passive: false});
+        screen.addEventListener('mousedown', handleInteraction);
+        window.onload = initTargets;
+    </script>
+</body>
+</html>
+
