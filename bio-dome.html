@@ -131,7 +131,8 @@ const modules=[
     {angle:(Math.PI/3)*2,     name:"PAINEL DE CONTROLE",         desc:"Monitoramento de pH, EC, temperatura e umidade. Bombas de irrigacao ativas. Sensores em rede local.", color:"#38bdf8", type:"control",  link:null},
     {angle:Math.PI,           name:"ESTACAO DE FERRAMENTAS",     desc:"Tesouras de poda, luvas de substrato, medidores de pH e seringas de nutrientes. Organizados por John.", color:"#c084fc", type:"tools",    link:null},
     {angle:(Math.PI/3)*4,     name:"VIVEIRO DE MUDAS",           desc:"Bandejas de germinacao sob espectro LED violeta. 48 capsulas. Taxa de germinacao: 91%. Dia 6.", color:"#f9a8d4", type:"seedling", link:null},
-    {angle:(Math.PI/3)*5,     name:"SAIDA - CORREDOR B3",        desc:"Porta pressurizada de retorno a estacao principal. Camara de descontaminacao ativa.", color:"#4ade80", type:"exit",     link:null}
+    // ─── LINK DE NAVEGAÇÃO: ao pressionar EXAMINAR na SAIDA, redireciona para a próxima cena ───
+    {angle:(Math.PI/3)*5,     name:"SAIDA - CORREDOR B3",        desc:"Porta pressurizada de retorno a estacao principal. Camara de descontaminacao ativa.", color:"#4ade80", type:"exit",     link:"a1-open-doors.html"}
 ];
 
 const spores=Array.from({length:55},()=>({
