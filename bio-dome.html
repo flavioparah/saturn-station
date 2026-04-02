@@ -3,849 +3,780 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TIMEWAYS - Bio-Dome A1</title>
+    <title>TIMEWAYS - BIO-DOME</title>
     <style>
-        :root {
-            --neon: #22c55e;
-            --neon-dim: rgba(34, 197, 94, 0.15);
-            --bg: #010205;
-            --panel: rgba(10, 20, 14, 0.92);
-            --amber: #fbbf24;
-            --cold: #7dd3fc;
-            --plant-green: #16a34a;
-            --water-blue: #06b6d4;
-        }
-
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        body, html {
-            width: 100%; height: 100%;
-            overflow: hidden;
-            background: var(--bg);
-            font-family: 'Orbitron', sans-serif;
-            color: white;
-        }
-
-        #stage {
-            position: relative;
-            width: 100vw; height: 100vh;
-            background: #000;
-        }
-
+        :root { --neon2: #4ade80; --bg: #010805; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; margin: 0; padding: 0; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Orbitron', sans-serif; color: white; }
+        #stage { position: relative; width: 100vw; height: 100vh; background: #000; }
         canvas { display: block; position: absolute; inset: 0; z-index: 5; }
-
-        /* UI OVERLAY */
-        #ui-top {
-            position: absolute;
-            top: 50px; left: 30px;
-            border-left: 4px solid var(--neon);
-            padding-left: 15px;
-            z-index: 100;
-            text-shadow: 0 0 10px var(--neon);
-        }
-
+        #ui-top { position: absolute; top: 50px; left: 30px; border-left: 4px solid var(--neon2); padding-left: 15px; z-index: 100; text-shadow: 0 0 10px var(--neon2); }
         .label { font-size: 10px; text-transform: uppercase; letter-spacing: 3px; opacity: 0.6; font-weight: 400; }
-        .value { font-weight: 900; font-size: 18px; color: var(--neon); letter-spacing: 2px; }
-
-        /* STATUS LOG */
-        #status-log {
-            position: absolute;
-            top: 50px; right: 30px;
-            width: 200px;
-            z-index: 100;
-            text-align: right;
-            opacity: 0;
-            animation: fadeIn 3s ease 2s forwards;
-        }
-
+        .value { font-weight: 900; font-size: 18px; color: var(--neon2); letter-spacing: 2px; }
+        #bio-log { position: absolute; top: 50px; right: 30px; width: 190px; z-index: 100; text-align: right; opacity: 0; animation: fadeIn 3s ease 2s forwards; }
         @keyframes fadeIn { to { opacity: 1; } }
-
-        .status-line {
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 10px;
-            color: rgba(34, 197, 94, 0.5);
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            line-height: 1.8;
-        }
-
-        #module-card {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%) scale(0.9);
-            width: 280px;
-            text-align: center;
-            opacity: 0;
-            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-            pointer-events: none;
-            z-index: 10;
-        }
-        #module-card.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-
-        .mod-name {
-            font-size: 16px; font-weight: 900;
-            color: var(--neon); margin-bottom: 8px;
-            letter-spacing: 3px;
-            text-shadow: 0 0 15px var(--neon);
-        }
-        .mod-desc {
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 11px; color: #94a3b8;
-            line-height: 1.6; text-transform: uppercase; letter-spacing: 1px;
-        }
-
-        /* CONTROLS */
-        .controls-container {
-            position: absolute;
-            bottom: 100px; left: 50%;
-            transform: translateX(-50%);
-            display: flex; justify-content: center; align-items: center;
-            gap: 30px;
-            pointer-events: auto; z-index: 100;
-        }
-
-        .nav-btn {
-            width: 65px; height: 65px;
-            background: rgba(10, 20, 14, 0.9);
-            border: 1px solid rgba(34, 197, 94, 0.25);
-            border-radius: 50%;
-            color: var(--neon);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 22px; cursor: pointer;
-            backdrop-filter: blur(10px);
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-        .nav-btn:active { background: var(--neon); color: black; box-shadow: 0 0 20px var(--neon); }
-
-        #action-btn {
-            width: 105px; height: 105px;
-            background: var(--neon);
-            color: #000; border: none;
-            border-radius: 50%; font-weight: 900;
-            font-size: 9px; cursor: pointer;
-            box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
-            display: flex; align-items: center; justify-content: center;
-            flex-direction: column; text-transform: uppercase;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            transform: scale(0); opacity: 0;
-            line-height: 1.2; text-align: center; flex-shrink: 0;
-        }
+        .bio-line { font-family: 'Rajdhani', sans-serif; font-size: 10px; color: rgba(134,239,172,0.55); letter-spacing: 1px; text-transform: uppercase; line-height: 1.9; }
+        .bio-line.alert { color: rgba(251,191,36,0.8); }
+        #module-card { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0.9); width: 290px; text-align: center; opacity: 0; transition: all 0.5s cubic-bezier(0.19,1,0.22,1); pointer-events: none; z-index: 10; }
+        #module-card.visible { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+        .mod-name { font-size: 15px; font-weight: 900; color: var(--neon2); margin-bottom: 8px; letter-spacing: 3px; text-shadow: 0 0 15px var(--neon2); }
+        .mod-desc { font-family: 'Rajdhani', sans-serif; font-size: 11px; color: #94a3b8; line-height: 1.6; text-transform: uppercase; letter-spacing: 1px; }
+        .controls-container { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); display: flex; justify-content: center; align-items: center; gap: 30px; pointer-events: auto; z-index: 100; }
+        .nav-btn { width: 65px; height: 65px; background: rgba(5,20,10,0.9); border: 1px solid rgba(74,222,128,0.25); border-radius: 50%; color: var(--neon2); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s; flex-shrink: 0; }
+        .nav-btn:active { background: var(--neon2); color: black; box-shadow: 0 0 20px var(--neon2); }
+        #action-btn { width: 105px; height: 105px; background: var(--neon2); color: #000; border: none; border-radius: 50%; font-weight: 900; font-size: 9px; cursor: pointer; box-shadow: 0 0 30px rgba(74,222,128,0.3); display: flex; align-items: center; justify-content: center; flex-direction: column; text-transform: uppercase; transition: all 0.4s cubic-bezier(0.175,0.885,0.32,1.275); transform: scale(0); opacity: 0; line-height: 1.2; text-align: center; flex-shrink: 0; }
         #action-btn.active { transform: scale(1); opacity: 1; }
-
-        /* MENSAGEM ATMOSFÉRICA */
-        #atm-msg {
-            position: absolute;
-            bottom: 30px; left: 50%;
-            transform: translateX(-50%);
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 11px;
-            color: rgba(34, 197, 94, 0.35);
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            text-align: center;
-            white-space: nowrap;
-            z-index: 100;
-            animation: breathe 6s ease-in-out infinite;
-        }
-        @keyframes breathe {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.7; }
-        }
-
-        #audio-hint {
-            position: absolute; top: 20px; right: 20px;
-            font-size: 9px; color: var(--neon); opacity: 0.4; z-index: 200;
-        }
+        #atm-msg { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); font-family: 'Rajdhani', sans-serif; font-size: 11px; color: rgba(134,239,172,0.4); letter-spacing: 3px; text-transform: uppercase; text-align: center; white-space: nowrap; z-index: 100; animation: breathe 7s ease-in-out infinite; }
+        @keyframes breathe { 0%,100%{opacity:0.25} 50%{opacity:0.65} }
+        #audio-hint { position: absolute; top: 20px; right: 20px; font-size: 9px; color: var(--neon2); opacity: 0.4; z-index: 200; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-
 <div id="stage">
-    <div id="audio-hint">CLIQUE PARA ATIVAR ÁUDIO</div>
-
+    <div id="audio-hint">CLIQUE PARA ATIVAR AUDIO</div>
     <canvas id="game"></canvas>
-
     <div id="ui-top">
-        <div class="label">SATURN STATION // BIO-DOME A1</div>
-        <div class="value">SAÚDE: 87%</div>
+        <div class="label">SATURN STATION // BIO-DOME B3</div>
+        <div class="value">VIVEIRO ATIVO</div>
     </div>
-
-    <div id="status-log">
-        <div class="status-line">CULTIVO ATIVO</div>
-        <div class="status-line">UMIDADE: 78%</div>
-        <div class="status-line">LUZ: 2200 LUX</div>
-        <div class="status-line">TEMP: 22.3°C</div>
+    <div id="bio-log">
+        <div class="bio-line">CICLO DE LUZ: 16H/8H</div>
+        <div class="bio-line">UMIDADE: 78.3%</div>
+        <div class="bio-line">CO2: 412 PPM</div>
+        <div class="bio-line alert">TOMATE-C7: BAIXA AGUA</div>
+        <div class="bio-line">COLHEITA PREV.: DIA 14</div>
     </div>
-
     <div id="module-card">
-        <div class="mod-name" id="m-title">—</div>
+        <div class="mod-name" id="m-title">-</div>
         <div class="mod-desc" id="m-desc">Aguardando...</div>
     </div>
-
     <div class="controls-container">
-        <div id="btn-left" class="nav-btn">◀</div>
-        <button id="action-btn">INTERAGIR</button>
-        <div id="btn-right" class="nav-btn">▶</div>
+        <div id="btn-left" class="nav-btn">&#9664;</div>
+        <button id="action-btn">EXAMINAR</button>
+        <div id="btn-right" class="nav-btn">&#9654;</div>
     </div>
-
-    <div id="atm-msg">ECOSSISTEMA EM EQUILÍBRIO</div>
+    <div id="atm-msg">CICLO DE FOTOSSINTESE ATIVO - DIA 47</div>
 </div>
-
 <script>
-// ─── ÁUDIO PROCEDURAL ────────────────────────────────────────────────────────
 class BioDomeAudio {
-    constructor() {
-        this.ctx = null;
-        this.initialized = false;
-        this.ambientGain = null;
-        this.waterGain = null;
-    }
-
+    constructor() { this.ctx=null; this.initialized=false; this.ventGain=null; }
     init() {
-        if (this.initialized) return;
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this._setupAmbient();
-        this._setupWater();
-        this.initialized = true;
-        document.getElementById('audio-hint').style.display = 'none';
+        if(this.initialized)return;
+        this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+        this._setupAmbience(); this.initialized=true;
+        document.getElementById('audio-hint').style.display='none';
     }
-
-    _setupAmbient() {
-        // Som ambiente: zumbido suave de sistemas de irrigação
-        const bufferSize = 3 * this.ctx.sampleRate;
-        const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = noiseBuffer;
-        noise.loop = true;
-
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 400;
-
-        this.ambientGain = this.ctx.createGain();
-        this.ambientGain.gain.value = 0.025;
-
-        noise.connect(filter);
-        filter.connect(this.ambientGain);
-        this.ambientGain.connect(this.ctx.destination);
-        noise.start();
+    _setupAmbience() {
+        const sz=3*this.ctx.sampleRate, buf=this.ctx.createBuffer(1,sz,this.ctx.sampleRate), d=buf.getChannelData(0);
+        for(let i=0;i<sz;i++)d[i]=Math.random()*2-1;
+        const n=this.ctx.createBufferSource(); n.buffer=buf; n.loop=true;
+        const f1=this.ctx.createBiquadFilter(); f1.type='bandpass'; f1.frequency.value=180; f1.Q.value=0.6;
+        const f2=this.ctx.createBiquadFilter(); f2.type='lowpass'; f2.frequency.value=350;
+        this.ventGain=this.ctx.createGain(); this.ventGain.gain.value=0.025;
+        n.connect(f1);f1.connect(f2);f2.connect(this.ventGain);this.ventGain.connect(this.ctx.destination);n.start();
+        const lfo=this.ctx.createOscillator(),lG=this.ctx.createGain();
+        lfo.frequency.value=0.06;lG.gain.value=0.012;lfo.connect(lG);lG.connect(this.ventGain.gain);lfo.start();
+        const sub=this.ctx.createOscillator();sub.type='sine';sub.frequency.value=42;
+        const sG=this.ctx.createGain();sG.gain.value=0.012;sub.connect(sG);sG.connect(this.ctx.destination);sub.start();
+        setInterval(()=>{if(this.initialized)this._drip();},3800+Math.random()*2000);
     }
-
-    _setupWater() {
-        // Som de água fluindo — gotejamento suave
-        const osc = this.ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(45, this.ctx.currentTime);
-
-        const lfo = this.ctx.createOscillator();
-        const lfoG = this.ctx.createGain();
-        lfo.frequency.value = 0.06;
-        lfoG.gain.value = 2;
-        lfo.connect(lfoG);
-        lfoG.connect(osc.frequency);
-        lfo.start();
-
-        this.waterGain = this.ctx.createGain();
-        this.waterGain.gain.value = 0.012;
-        osc.connect(this.waterGain);
-        this.waterGain.connect(this.ctx.destination);
-        osc.start();
+    _drip() {
+        const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();
+        o.type='sine';o.frequency.setValueAtTime(900+Math.random()*200,t);o.frequency.exponentialRampToValueAtTime(300,t+0.12);
+        g.gain.setValueAtTime(0.045,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+        o.connect(g);g.connect(this.ctx.destination);o.start();o.stop(t+0.2);
     }
-
     playInteract() {
-        if (!this.ctx) return;
-        const t = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const g = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(620, t);
-        osc.frequency.exponentialRampToValueAtTime(380, t + 0.15);
-        g.gain.setValueAtTime(0.06, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-        osc.connect(g); g.connect(this.ctx.destination);
-        osc.start(); osc.stop(t + 0.22);
+        if(!this.ctx)return; const t=this.ctx.currentTime;
+        const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+        o.type='triangle';o.frequency.setValueAtTime(480,t);o.frequency.exponentialRampToValueAtTime(260,t+0.2);
+        g.gain.setValueAtTime(0.06,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.24);
+        o.connect(g);g.connect(this.ctx.destination);o.start();o.stop(t+0.26);
     }
-
+    playFootstep() {
+        if(!this.ctx)return; const t=this.ctx.currentTime;
+        const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+        o.type='sine';o.frequency.setValueAtTime(70,t);o.frequency.exponentialRampToValueAtTime(18,t+0.09);
+        g.gain.setValueAtTime(0.05,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.11);
+        o.connect(g);g.connect(this.ctx.destination);o.start();o.stop(t+0.13);
+    }
     playNav() {
-        if (!this.ctx) return;
-        const t = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const g = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(440, t);
-        g.gain.setValueAtTime(0.04, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-        osc.connect(g); g.connect(this.ctx.destination);
-        osc.start(); osc.stop(t + 0.12);
+        if(!this.ctx)return; const t=this.ctx.currentTime;
+        const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+        o.type='sine';o.frequency.setValueAtTime(240+Math.random()*40,t);
+        g.gain.setValueAtTime(0.035,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.09);
+        o.connect(g);g.connect(this.ctx.destination);o.start();o.stop(t+0.1);
+    }
+    updateProximity(active) {
+        if(!this.initialized||!this.ventGain)return;
+        this.ventGain.gain.setTargetAtTime(active?0.04:0.025,this.ctx.currentTime,0.3);
     }
 }
+const sfx=new BioDomeAudio();
 
-const sfx = new BioDomeAudio();
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+const mCard=document.getElementById('module-card');
+const mTitle=document.getElementById('m-title');
+const mDesc=document.getElementById('m-desc');
+const actBtn=document.getElementById('action-btn');
 
-// ─── CANVAS ──────────────────────────────────────────────────────────────────
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-const mCard = document.getElementById('module-card');
-const mTitle = document.getElementById('m-title');
-const mDesc = document.getElementById('m-desc');
-const actBtn = document.getElementById('action-btn');
+let w,h,cx,cy,ringRadius,ringWidth;
+let playerAngle=0,stationRot=0,playerVel=0,input=0,time=0,stars=[],lastStep=0,currentActiveModule=null;
 
-let w, h, cx, cy, ringRadius, ringWidth;
-let playerAngle = 0;
-let stationRot = 0;
-let playerVel = 0;
-let input = 0;
-let time = 0;
-let stars = [];
-let lastStep = 0;
-let currentActiveModule = null;
-
-// ─── MÓDULOS DO BIO-DOME ──────────────────────────────────────────────────────
-const modules = [
-    {
-        angle: 0,
-        name: "HORTA PRINCIPAL",
-        desc: "Filas de plantas em crescimento. Tomates, alface, feijão. Sistemas de LED crescimento em pleno funcionamento.",
-        color: "#22c55e",
-        type: "plants",
-        link: null
-    },
-    {
-        angle: Math.PI / 3,
-        name: "SISTEMA DE IRRIGAÇÃO",
-        desc: "Tubagens hidráulicas em cascata. Água reciclada da condensação. Sensores de umidade calibrados.",
-        color: "#06b6d4",
-        type: "irrigation",
-        link: null
-    },
-    {
-        angle: (Math.PI / 3) * 2,
-        name: "ESTAÇÃO DE FERRAMENTAS",
-        desc: "Tesouras de poda, luvas de cultivo, medidores de pH. Tudo organizado com precisão militar.",
-        color: "#fbbf24",
-        type: "tools",
-        link: null
-    },
-    {
-        angle: Math.PI,
-        name: "COMPOSTAGEM ORGÂNICA",
-        desc: "Resíduos biodegradáveis em decomposição. Nutrientes para o solo. Ciclo fechado perfeito.",
-        color: "#a78bfa",
-        type: "compost",
-        link: null
-    },
-    {
-        angle: (Math.PI / 3) * 4,
-        name: "PAINEL DE CONTROLE",
-        desc: "Monitoramento em tempo real. Temperatura, umidade, níveis de CO2. Tudo sob controle.",
-        color: "#f87171",
-        type: "control",
-        link: null
-    },
-    {
-        angle: (Math.PI / 3) * 5,
-        name: "RETORNO — HABITAT A1",
-        desc: "Porta de saída para o habitat. Ar fresco de oxigénio da estufa.",
-        color: "#22c55e",
-        type: "exit",
-        link: "habitat.html" // <--- EDITE AQUI se quiser mudar o destino
-    }
+const modules=[
+    {angle:0,                 name:"HIDROPONIA - SECAO ALFA",    desc:"Tubulacoes de PVC com raizes submersas. Alface, espinafre e rucula em crescimento continuo. Ciclo 14/10.", color:"#86efac", type:"hydro",    link:null},
+    {angle:Math.PI/3,         name:"HORTA DE SOLO - TOMATES",    desc:"Canteiro pressurizado com substrato organico. Tomate-C7 com deficit hidrico detectado. Atencao requerida.", color:"#fbbf24", type:"tomato",   link:null},
+    {angle:(Math.PI/3)*2,     name:"PAINEL DE CONTROLE",         desc:"Monitoramento de pH, EC, temperatura e umidade. Bombas de irrigacao ativas. Sensores em rede local.", color:"#38bdf8", type:"control",  link:null},
+    {angle:Math.PI,           name:"ESTACAO DE FERRAMENTAS",     desc:"Tesouras de poda, luvas de substrato, medidores de pH e seringas de nutrientes. Organizados por John.", color:"#c084fc", type:"tools",    link:null},
+    {angle:(Math.PI/3)*4,     name:"VIVEIRO DE MUDAS",           desc:"Bandejas de germinacao sob espectro LED violeta. 48 capsulas. Taxa de germinacao: 91%. Dia 6.", color:"#f9a8d4", type:"seedling", link:null},
+    {angle:(Math.PI/3)*5,     name:"SAIDA - CORREDOR B3",        desc:"Porta pressurizada de retorno a estacao principal. Camara de descontaminacao ativa.", color:"#4ade80", type:"exit",     link:null}
 ];
 
-// ─── PARTÍCULAS (PÓLEN/ESPOROS) ───────────────────────────────────────────────
-const particles = Array.from({ length: 60 }, () => ({
-    angle: Math.random() * Math.PI * 2,
-    r: (Math.random() * 0.3 + 0.05),
-    speed: (Math.random() - 0.5) * 0.0004,
-    size: Math.random() * 1.5 + 0.4,
-    opacity: Math.random() * 0.25 + 0.05
+const spores=Array.from({length:55},()=>({
+    angle:Math.random()*Math.PI*2, r:Math.random()*0.35+0.05,
+    speed:(Math.random()-0.5)*0.00025, size:Math.random()*1.5+0.2,
+    opacity:Math.random()*0.25+0.04,
+    color:['#86efac','#4ade80','#fde68a','#f9a8d4','#38bdf8'][Math.floor(Math.random()*5)]
 }));
 
-// ─── ESTRELAS ─────────────────────────────────────────────────────────────────
-function initStars() {
-    stars = [];
-    for (let i = 0; i < 250; i++) {
-        stars.push({
-            x: (Math.random() - 0.5) * 2200,
-            y: (Math.random() - 0.5) * 2200,
-            s: Math.random() * 1.4 + 0.2,
-            o: Math.random() * 0.7 + 0.1
-        });
-    }
+function initStars(){
+    stars=[];
+    for(let i=0;i<220;i++)stars.push({x:(Math.random()-0.5)*2200,y:(Math.random()-0.5)*2200,s:Math.random()*1.2+0.15,o:Math.random()*0.5+0.08});
+}
+function resize(){
+    w=canvas.width=window.innerWidth; h=canvas.height=window.innerHeight;
+    cx=w/2; cy=h/2;
+    ringRadius=Math.min(w,h)*0.27; ringWidth=ringRadius*0.60;
+    if(stars.length===0)initStars();
 }
 
-// ─── RESIZE ───────────────────────────────────────────────────────────────────
-function resize() {
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = window.innerHeight;
-    cx = w / 2; cy = h / 2;
-    ringRadius = Math.min(w, h) * 0.27;
-    ringWidth = ringRadius * 0.60;
-    if (stars.length === 0) initStars();
-}
+// ─── TREPADEIRAS ─────────────────────────────────────────────────────────────
+// Trepadeiras espalhadas pelas interseções: parede externa, interna e laterais dos módulos.
+// Cada vine é definida por: startAngle (onde nasce), arcSpan (quanto percorre em arco),
+// radialShift (quanto se afasta radialmente, 0=rOut, 1=rIn), seed e dir (+1/-1).
 
-// ─── INPUT ────────────────────────────────────────────────────────────────────
-const setInput = (id, val) => {
-    const el = document.getElementById(id);
-    const start = (e) => {
-        e.preventDefault();
-        sfx.init(); input = val; sfx.playNav();
-    };
-    const end = () => { if (input === val) input = 0; };
-    el.addEventListener('mousedown', start);
-    el.addEventListener('touchstart', start, { passive: false });
-    window.addEventListener('mouseup', end);
-    window.addEventListener('touchend', end);
-};
-setInput('btn-left', 0.0012);
-setInput('btn-right', -0.0012);
+const vines = [
+    // --- parede EXTERNA (rOut): rastejam em arco tangencial ---
+    { startAngle: Math.PI/6-0.18,   arcSpan:  0.52, radialBase: 0.05, seed: 1.1,  dir:  1 },
+    { startAngle: Math.PI/2-0.15,   arcSpan:  0.48, radialBase: 0.08, seed: 2.7,  dir: -1 },
+    { startAngle: Math.PI*(5/6)-0.2,arcSpan:  0.55, radialBase: 0.06, seed: 0.4,  dir:  1 },
+    { startAngle: Math.PI*(7/6)-0.1,arcSpan:  0.50, radialBase: 0.04, seed: 3.3,  dir: -1 },
+    { startAngle: Math.PI*(3/2)-0.2,arcSpan:  0.46, radialBase: 0.07, seed: 1.8,  dir:  1 },
+    { startAngle: Math.PI*(11/6)-0.15,arcSpan:0.53, radialBase: 0.05, seed: 2.2,  dir: -1 },
 
-window.addEventListener('keydown', (e) => {
-    sfx.init();
-    const k = e.key.toLowerCase();
-    if (k === 'a' || k === 'arrowleft') input = 0.0012;
-    if (k === 'd' || k === 'arrowright') input = -0.0012;
-    if (e.key === 'Enter') triggerAction();
-});
-window.addEventListener('keyup', (e) => {
-    const k = e.key.toLowerCase();
-    if ((k === 'a' || k === 'arrowleft') && input > 0) input = 0;
-    if ((k === 'd' || k === 'arrowright') && input < 0) input = 0;
-});
-window.addEventListener('click', () => sfx.init());
+    // --- parede INTERNA (rIn): trepadeiras mais finas rastejam pelo teto ---
+    { startAngle: Math.PI/6+0.05,   arcSpan:  0.38, radialBase: 0.92, seed: 4.2,  dir: -1 },
+    { startAngle: Math.PI/2+0.08,   arcSpan:  0.42, radialBase: 0.88, seed: 5.1,  dir:  1 },
+    { startAngle: Math.PI*(5/6)+0.1,arcSpan:  0.36, radialBase: 0.95, seed: 3.7,  dir: -1 },
+    { startAngle: Math.PI*(7/6)+0.05,arcSpan: 0.40, radialBase: 0.90, seed: 0.9,  dir:  1 },
+    { startAngle: Math.PI*(3/2)+0.1,arcSpan:  0.35, radialBase: 0.93, seed: 2.0,  dir: -1 },
+    { startAngle: Math.PI*(11/6)+0.08,arcSpan:0.44, radialBase: 0.91, seed: 4.8,  dir:  1 },
 
-// ─── AÇÃO ─────────────────────────────────────────────────────────────────────
-function triggerAction() {
-    if (!currentActiveModule) return;
-    sfx.init(); sfx.playInteract();
-    if (currentActiveModule.link) {
-        actBtn.style.transform = 'scale(0.92)';
-        // COMENTÁRIO: O redirecionamento para a próxima página ocorre aqui.
-        // Se você quiser executar um código personalizado ao sair, pode colá-lo abaixo.
-        setTimeout(() => { 
-            window.location.href = currentActiveModule.link; 
-        }, 120);
-    }
-}
-actBtn.addEventListener('click', triggerAction);
+    // --- diagonais: partem do chão e sobem enquanto avançam em arco ---
+    { startAngle: Math.PI/3-0.12,   arcSpan:  0.30, radialBase: 0.02, seed: 6.3,  dir:  1, climb: true },
+    { startAngle: Math.PI*(2/3)-0.1,arcSpan:  0.28, radialBase: 0.03, seed: 7.1,  dir: -1, climb: true },
+    { startAngle: Math.PI*(4/3)-0.1,arcSpan:  0.32, radialBase: 0.02, seed: 5.5,  dir:  1, climb: true },
+    { startAngle: Math.PI*(5/3)-0.12,arcSpan: 0.29, radialBase: 0.04, seed: 8.2,  dir: -1, climb: true },
+];
 
-// ─── DESENHO: ASTRONAUTA ──────────────────────────────────────────────────────
-function drawAstronaut(t, vel) {
+function drawVineLeaf(x, y, size, angle, color, alpha) {
     ctx.save();
-    const moving = Math.abs(vel) > 0.0004;
-    const animSpeed = 11;
-    const walkPhase = moving ? Math.sin(t * animSpeed) : 0;
-
-    const white = '#e2e8f0';
-    const bodyGrey = '#334155';
-    const helmetDark = '#0f172a';
-    const green = '#22c55e';
-
-    ctx.translate(cx, cy);
-    ctx.rotate(playerAngle);
-
-    ctx.save();
-    const bounce = moving ? Math.abs(Math.sin(t * animSpeed)) * 1.3 : 0;
-    ctx.translate(0, -bounce - 2);
-
-    ctx.fillStyle = '#334155'; ctx.beginPath();
-    ctx.roundRect(-14, -28, 10, 24, 4); ctx.fill();
-    ctx.fillStyle = white; ctx.beginPath();
-    ctx.roundRect(-12, -32, 24, 32, [8, 8, 4, 4]); ctx.fill();
-
-    ctx.fillStyle = green;
-    ctx.globalAlpha = 0.5 + Math.sin(t * 4) * 0.5;
-    ctx.fillRect(-5, -22, 10, 2);
-    ctx.globalAlpha = 1;
-
-    ctx.save(); ctx.translate(-10, -25); ctx.rotate(moving ? -walkPhase * 0.8 : 0.2);
-    ctx.fillStyle = bodyGrey; ctx.beginPath();
-    ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill(); ctx.restore();
-
-    ctx.save(); ctx.translate(10, -25); ctx.rotate(moving ? walkPhase * 0.8 : -0.2);
-    ctx.fillStyle = white; ctx.beginPath();
-    ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill(); ctx.restore();
-
-    ctx.save(); ctx.translate(0, -38);
-    ctx.fillStyle = white; ctx.beginPath();
-    ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = helmetDark; ctx.beginPath();
-    ctx.ellipse(4, -1, 11, 8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo( size*0.9, -size*0.2,  size*1.2,  size*0.7,  size*0.5,  size*1.3);
+    ctx.bezierCurveTo( size*0.1,  size*1.7, -size*0.6,  size*1.4, -size*0.4,  size*0.6);
+    ctx.bezierCurveTo(-size*0.8,  size*0.1, -size*0.3, -size*0.3,  0, 0);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(size*0.15, size*0.6, size*0.4, size*1.2);
+    ctx.stroke();
     ctx.restore();
-
-    ctx.restore(); ctx.restore();
 }
 
-// ─── DESENHO: MÓDULOS ─────────────────────────────────────────────────────────
-function drawModule(m, isActive) {
+function drawVines(t) {
+    const rOut = ringRadius + ringWidth/2;
+    const rIn  = ringRadius - ringWidth/2;
+    const leafColors = ['#22c55e','#16a34a','#4ade80','#166534','#86efac','#15803d'];
+
+    vines.forEach(v => {
+        const s = v.seed;
+        const steps = 10;
+        const isInner = v.radialBase > 0.5;
+        const isClimb = !!v.climb;
+
+        // gera pontos do caule em coordenadas cartesianas globais (relativas ao centro)
+        const pts = [];
+        for (let i = 0; i <= steps; i++) {
+            const frac = i / steps;
+            // ângulo atual ao longo do arco
+            const ang = v.startAngle + v.dir * frac * v.arcSpan;
+            // raio: radialBase define posição inicial, climb sobe enquanto avança
+            let radFrac = v.radialBase;
+            if (isClimb) radFrac = v.radialBase + frac * 0.75;
+            // ondulação perpendicular ao raio (= tangencial)
+            const wobble = Math.sin(frac * Math.PI * 3.1 + s) * (ringWidth * 0.06)
+                         + Math.sin(t * 0.5 + s + frac * 4) * 1.5;
+            const r = rOut - radFrac * ringWidth + wobble * 0.4;
+            // posição tangencial adicional
+            const tanOffset = Math.sin(frac * Math.PI * 2 + s * 0.7) * (ringWidth * 0.04);
+            const effectiveAng = ang + tanOffset / r;
+            pts.push({
+                x: Math.cos(effectiveAng) * r,
+                y: Math.sin(effectiveAng) * r,
+                ang: effectiveAng,
+                r,
+                frac,
+            });
+        }
+
+        // desenha caule (sombra + cor)
+        const stemW = isInner ? 1.0 : (isClimb ? 1.3 : 1.8);
+        [[`#041a07`, stemW + 1.2], [isInner ? `#166534` : `#15803d`, stemW]].forEach(([col, lw]) => {
+            ctx.save();
+            ctx.strokeStyle = col;
+            ctx.lineWidth = lw;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            pts.forEach((p, i) => {
+                if (i === 0) { ctx.moveTo(p.x, p.y); return; }
+                const prev = pts[i-1];
+                ctx.bezierCurveTo(
+                    prev.x + (p.x-prev.x)*0.4, prev.y + (p.y-prev.y)*0.4,
+                    prev.x + (p.x-prev.x)*0.6, prev.y + (p.y-prev.y)*0.6,
+                    p.x, p.y
+                );
+            });
+            ctx.stroke();
+            ctx.restore();
+        });
+
+        // folhas
+        pts.forEach((p, i) => {
+            if (i === 0) return;
+            if (i % 2 !== 1) return;
+            const frac = p.frac;
+            // tamanho cresce um pouco ao longo do caule
+            const baseSize = isInner ? 2.5 : (isClimb ? 3.0 : 4.0);
+            const sz = (baseSize + Math.sin(s + i * 1.3) * 1.0) * (0.5 + frac * 0.7);
+            // ângulo da folha: perpendicular ao caule, alternando lados
+            const tangDir = p.ang + Math.PI/2;
+            const side = (i % 2 === 1) ? 1 : -1;
+            const leafAng = tangDir + side * 0.6 + Math.sin(t * 0.35 + s + i) * 0.12;
+            const col = leafColors[i % leafColors.length];
+            const alpha = isInner ? 0.65 : 0.80;
+            drawVineLeaf(p.x, p.y, sz, leafAng, col, alpha);
+
+            // folha oposta menor a cada 4 pontos
+            if (i % 4 === 1) {
+                const leafAng2 = tangDir - side * 0.8;
+                drawVineLeaf(p.x, p.y, sz * 0.7, leafAng2, leafColors[(i+3) % leafColors.length], alpha * 0.7);
+            }
+        });
+
+        // gavinhas espiraladas em alguns nós
+        pts.forEach((p, i) => {
+            if (i % 3 !== 2 || i === 0) return;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.strokeStyle = '#4ade80';
+            ctx.lineWidth = 0.6;
+            ctx.globalAlpha = 0.45;
+            const gLen = 5 + Math.sin(s * i) * 2;
+            const gAng = p.ang + v.dir * (Math.PI/2) + Math.sin(t * 0.8 + i) * 0.4;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(
+                Math.cos(gAng) * gLen * 0.3, Math.sin(gAng) * gLen * 0.3,
+                Math.cos(gAng + 0.8) * gLen * 0.8 + Math.sin(t + i) * 2,
+                Math.sin(gAng + 0.8) * gLen * 0.8,
+                Math.cos(gAng + 1.4) * gLen, Math.sin(gAng + 1.4) * gLen
+            );
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        });
+    });
+}
+
+// ─── Helpers de desenho em coordenadas locais do modulo ──────────────────────
+// Apos a transformacao de modulo:
+//   x = 0        => centro horizontal
+//   y = 0        => CHAO (rOut, parede externa)
+//   y = negativo => subindo em direcao ao centro da estacao
+function leaf(lx, ly, sz, ang, col, alpha=1){
+    ctx.save(); ctx.globalAlpha=alpha; ctx.translate(lx,ly); ctx.rotate(ang);
+    ctx.fillStyle=col; ctx.beginPath();
+    ctx.moveTo(0,0);
+    // folha aponta para cima (y negativo no espaco local = rumo ao centro)
+    ctx.bezierCurveTo( sz*0.6, sz*0.3,  sz*0.8,  sz,    sz*0.5,  sz*1.4);
+    ctx.bezierCurveTo( sz*0.2, sz*1.8, -sz*0.4,  sz*1.6,-sz*0.3,  sz*0.8);
+    ctx.bezierCurveTo(-sz*0.6, sz*0.4, -sz*0.3,  sz*0.1, 0, 0);
+    ctx.fill(); ctx.globalAlpha=1; ctx.restore();
+}
+function drop(lx, ly, r, alpha=0.7){
+    ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle='#7dd3fc';
+    ctx.beginPath();
+    ctx.moveTo(lx, ly+r*1.5);
+    ctx.bezierCurveTo(lx+r,ly+r*0.5, lx+r,ly-r, lx,ly-r);
+    ctx.bezierCurveTo(lx-r,ly-r, lx-r,ly+r*0.5, lx,ly+r*1.5);
+    ctx.fill(); ctx.globalAlpha=1; ctx.restore();
+}
+
+// ─── DRAW MODULE ─────────────────────────────────────────────────────────────
+// Sistema de coordenadas locais:
+//   1) ctx.rotate(m.angle)   => alinha o raio do modulo
+//   2) ctx.translate(rOut,0) => move a origem para o chao (borda externa)
+//   3) ctx.rotate(PI/2)      => gira: agora Y local = -radial
+//      => y=0 e o chao, y=-profundidade aponta para o centro
+function drawModule(m, isActive){
     ctx.save();
     ctx.rotate(m.angle);
 
-    const outer = ringRadius + ringWidth / 2;
-    const inner = ringRadius - ringWidth / 2;
-    const mid   = ringRadius;
-    const pulse  = 0.5 + Math.sin(time * (m.type === 'control' ? 8 : 2.5)) * 0.5;
-    const glow   = isActive ? 1 : 0.55;
+    const rOut=ringRadius+ringWidth/2;
+    const pulse=0.5+Math.sin(time*2.8)*0.5;
+    const glow=isActive?1:0.5;
+    const depth=ringWidth; // espaco disponivel dentro do anel
 
-    // ── LUZES NO TETO ──────────────────────────────────────────────────────────
-    const lightSpacing = 18;
-    const numLights = 3;
-    for (let i = 0; i < numLights; i++) {
-        const ly = -lightSpacing + i * lightSpacing;
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(inner + 1, ly - 1, 5, 3);
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath(); ctx.roundRect(inner + 1, ly + 2, 5, 7, 2); ctx.fill();
-        const litColor = m.color;
-        ctx.fillStyle = litColor;
-        ctx.globalAlpha = (0.4 + pulse * 0.5) * glow;
-        ctx.beginPath(); ctx.roundRect(inner + 2, ly + 3, 3, 5, 1); ctx.fill();
-        ctx.globalAlpha = 0.06 * glow;
-        ctx.fillStyle = litColor;
-        ctx.beginPath(); ctx.arc(inner + 3.5, ly + 5, 12, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1;
+    // transforma para espaco local do modulo
+    // rotate(-PI/2): y=-H aponta radialmente para DENTRO do anel (rumo ao centro)
+    ctx.translate(rOut,0);
+    ctx.rotate(-Math.PI/2);
+    // Agora: y=0=chao(rOut), y=-H=teto(rIn/interior do anel)
+
+    const W=58; const H=depth-2;
+    const lc={hydro:'#86efac',tomato:'#fbbf24',control:'#38bdf8',tools:'#c084fc',seedling:'#f9a8d4',exit:'#4ade80'}[m.type]||'#86efac';
+
+    // Luzes no teto (y=-H, distribuidas em x)
+    if(m.type!=='exit'){
+        for(let i=0;i<4;i++){
+            const lx=-20+i*14;
+            ctx.fillStyle='#1e293b'; ctx.fillRect(lx-2,-H-1,5,3);
+            ctx.fillStyle=lc; ctx.globalAlpha=(0.4+pulse*0.5)*glow;
+            ctx.beginPath(); ctx.arc(lx,-H+1,2.5,0,Math.PI*2); ctx.fill();
+            ctx.globalAlpha=0.06*glow;
+            ctx.beginPath(); ctx.arc(lx,-H+1,14,0,Math.PI*2); ctx.fill();
+            ctx.globalAlpha=1;
+        }
     }
 
-    // ── HORTA PRINCIPAL ────────────────────────────────────────────────────────
-    if (m.type === 'plants') {
-        const W = 50; const H = 85; const x = outer - W;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(x, -H/2, W, H);
-        ctx.strokeStyle = isActive ? m.color : '#334155';
-        ctx.lineWidth = isActive ? 1.5 : 1;
-        ctx.strokeRect(x, -H/2, W, H);
+    // ── HIDROPONIA ────────────────────────────────────────────────────────────
+    if(m.type==='hydro'){
+        ctx.fillStyle='#0a1f0c'; ctx.fillRect(-W/2,-H,W,H);
+        ctx.strokeStyle=isActive?m.color:'#1a3a1e'; ctx.lineWidth=1.5; ctx.strokeRect(-W/2,-H,W,H);
 
-        // Plantas em fileiras
-        for (let row = 0; row < 3; row++) {
-            for (let col = 0; col < 2; col++) {
-                const px = x + 8 + col * 18;
-                const py = -H/2 + 15 + row * 20;
-                
-                // Vaso
-                ctx.fillStyle = '#475569';
-                ctx.beginPath(); ctx.ellipse(px, py + 8, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#334155';
-                ctx.beginPath(); ctx.roundRect(px - 5, py, 10, 8, 2); ctx.fill();
+        // 3 tubos PVC - distribuidos verticalmente (em y negativo, subindo)
+        [H*0.28, H*0.55, H*0.80].forEach((yOff,ti)=>{
+            const ty=-yOff; const tw=W-10; const th=10;
+            // tubo
+            ctx.fillStyle='#d1fae5'; ctx.beginPath(); ctx.roundRect(-tw/2,ty-th/2,tw,th,5); ctx.fill();
+            ctx.fillStyle='#ecfdf5'; ctx.beginPath(); ctx.roundRect(-tw/2,ty-th/2,tw,3,[5,5,0,0]); ctx.fill();
+            // agua
+            ctx.fillStyle='#0ea5e9'; ctx.globalAlpha=0.3;
+            ctx.beginPath(); ctx.roundRect(-tw/2,ty+th/2-4,tw,4,[0,0,5,5]); ctx.fill(); ctx.globalAlpha=1;
 
-                // Folhas (verde)
-                ctx.fillStyle = '#22c55e';
-                ctx.globalAlpha = 0.7 + Math.sin(time * 2 + row * col) * 0.3;
-                for (let l = 0; l < 3; l++) {
-                    const angle = (l * Math.PI / 1.5) - Math.PI / 3;
-                    const lx = px + Math.cos(angle) * 7;
-                    const ly = py - 3 + Math.sin(angle) * 6;
-                    ctx.beginPath(); ctx.ellipse(lx, ly, 2.5, 5, angle, 0, Math.PI * 2); ctx.fill();
+            // plantas saindo do topo do tubo (crescem para cima = y mais negativo)
+            for(let p=0;p<3;p++){
+                const px=-tw/2+8+p*((tw-16)/2);
+                const baseY=ty-th/2; // topo do tubo
+                const sw=Math.sin(time*1.5+ti*2+p)*1.2;
+                const stemLen=14+ti*3;
+
+                // raizes (caem dentro do tubo, y cresce = desce = vai ao chao)
+                ctx.strokeStyle='rgba(134,239,172,0.2)'; ctx.lineWidth=0.7;
+                for(let r=0;r<3;r++){
+                    ctx.beginPath(); ctx.moveTo(px+r*2-2,baseY); ctx.lineTo(px+r*2-2+Math.sin(time+r)*1.5,baseY+7); ctx.stroke();
                 }
-                ctx.globalAlpha = 1;
+                // caule sobe (y mais negativo)
+                ctx.strokeStyle='#166534'; ctx.lineWidth=1.4;
+                ctx.beginPath(); ctx.moveTo(px,baseY); ctx.lineTo(px+sw,baseY-stemLen); ctx.stroke();
+                // folhas
+                const lc2=['#4ade80','#22c55e','#86efac'][ti];
+                leaf(px+sw-4, baseY-stemLen*0.55, 5, -0.5+sw*0.05, lc2, 0.9);
+                leaf(px+sw+3, baseY-stemLen*0.45, 4, 0.8+sw*0.05, '#16a34a', 0.85);
+                if(p===1) leaf(px+sw, baseY-stemLen, 3.5, 0.1, '#bbf7d0', 0.7);
             }
-        }
+            // conectores laterais
+            ctx.fillStyle='#94a3b8'; ctx.fillRect(-W/2,ty-2,5,4); ctx.fillRect(W/2-5,ty-2,5,4);
+        });
 
-        if (isActive) {
-            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
-            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
-            ctx.strokeRect(x, -H/2, W, H); ctx.restore();
+        // tubo de alimentacao vertical (lado esq, x=-W/2+4)
+        ctx.fillStyle='#64748b'; ctx.fillRect(-W/2+3,-H+4,3,H-8);
+        ctx.fillStyle='#38bdf8'; ctx.globalAlpha=0.5+Math.sin(time*4)*0.3;
+        for(let fa=0;fa<4;fa++){
+            const fy=-((time*20+fa*14)%(H-8));
+            ctx.fillRect(-W/2+3,fy,3,6);
         }
+        ctx.globalAlpha=1;
+        if(isActive){ctx.save();ctx.shadowBlur=20;ctx.shadowColor=m.color;ctx.strokeStyle=m.color;ctx.lineWidth=2;ctx.globalAlpha=0.4;ctx.strokeRect(-W/2,-H,W,H);ctx.restore();}
     }
 
-    // ── SISTEMA DE IRRIGAÇÃO ──────────────────────────────────────────────────
-    else if (m.type === 'irrigation') {
-        const W = 48; const H = 80; const x = outer - W;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(x, -H/2, W, H);
-        ctx.strokeStyle = isActive ? m.color : '#334155';
-        ctx.lineWidth = isActive ? 1.5 : 1;
-        ctx.strokeRect(x, -H/2, W, H);
+    // ── TOMATES ───────────────────────────────────────────────────────────────
+    else if(m.type==='tomato'){
+        ctx.fillStyle='#0f0803'; ctx.fillRect(-W/2,-H,W,H);
+        ctx.strokeStyle=isActive?m.color:'#3b1f05'; ctx.lineWidth=1.5; ctx.strokeRect(-W/2,-H,W,H);
 
-        // Tubagens principais
-        ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.6 + pulse * 0.4;
-        ctx.beginPath(); ctx.moveTo(x + 10, -H/2 + 5); ctx.lineTo(x + 10, H/2 - 5); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(x + W - 10, -H/2 + 5); ctx.lineTo(x + W - 10, H/2 - 5); ctx.stroke();
-        ctx.globalAlpha = 1;
+        // canteiro de solo no CHAO (y=0 = chao, solo vai de y=-soilH ate y=0)
+        const soilH=18;
+        ctx.fillStyle='#451a03'; ctx.beginPath(); ctx.roundRect(-W/2+3,-soilH,W-6,soilH,[4,4,0,0]); ctx.fill();
+        ctx.fillStyle='#78350f'; ctx.beginPath(); ctx.roundRect(-W/2+4,-soilH,W-8,5,[3,3,0,0]); ctx.fill();
+        for(let s=0;s<8;s++){ ctx.fillStyle='#92400e'; ctx.beginPath(); ctx.arc(-W/2+6+s*7,-soilH+11+Math.sin(s)*2,1.5,0,Math.PI*2); ctx.fill(); }
 
-        // Conexões horizontais (água fluindo)
-        for (let i = 0; i < 4; i++) {
-            const y = -H/2 + 12 + i * 18;
-            ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 1.5;
-            ctx.globalAlpha = 0.4 + Math.sin(time * 3 + i) * 0.4;
-            ctx.beginPath(); ctx.moveTo(x + 10, y); ctx.lineTo(x + W - 10, y); ctx.stroke();
-            
-            // Gotículas
-            ctx.fillStyle = '#06b6d4';
-            ctx.globalAlpha = 0.7;
-            const dropX = x + 12 + ((time * 20 + i * 15) % (W - 24));
-            ctx.beginPath(); ctx.arc(dropX, y, 1.5, 0, Math.PI * 2); ctx.fill();
-        }
-        ctx.globalAlpha = 1;
-
-        // Válvulas de controle
-        ctx.fillStyle = '#334155';
-        for (let v = 0; v < 3; v++) {
-            ctx.beginPath(); ctx.arc(x + 24 + v * 12, H/2 - 8, 3, 0, Math.PI * 2); ctx.fill();
+        // gotejamento perto do teto (y=-H+12)
+        const dripY=-H+12;
+        ctx.fillStyle='#64748b'; ctx.fillRect(-W/2+3,dripY-2,W-6,4);
+        for(let d=0;d<3;d++){
+            const dx=-W/2+12+d*16;
+            if(d===0){ctx.fillStyle='#ef4444';ctx.globalAlpha=0.5+pulse*0.4;ctx.beginPath();ctx.arc(dx,dripY-5,2.5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+            else{drop(dx, dripY+((time*2+d*1.2)%1)*16, 2, 0.65);}
         }
 
-        if (isActive) {
-            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
-            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
-            ctx.strokeRect(x, -H/2, W, H); ctx.restore();
-        }
+        // 3 tomateiros crescendo do solo para cima
+        [-W/2+14, 0, W/2-14].forEach((tx,ti)=>{
+            const sw=Math.sin(time*0.8+ti*1.3)*1.5;
+            const stemTop=-H+22;
+            // estaca bambu (tracejado do solo ao topo)
+            ctx.strokeStyle='#a16207'; ctx.lineWidth=1.8; ctx.setLineDash([3,2]);
+            ctx.beginPath(); ctx.moveTo(tx,-soilH); ctx.lineTo(tx,stemTop); ctx.stroke(); ctx.setLineDash([]);
+            // caule
+            ctx.strokeStyle='#16a34a'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.moveTo(tx,-soilH); ctx.quadraticCurveTo(tx+sw,-H*0.5,tx+sw*1.5,stemTop+8); ctx.stroke();
+            // ramos
+            for(let b=0;b<3;b++){
+                const by=-soilH-b*(H*0.22); const bx=tx+sw*0.6;
+                const dir=ti%2===0?1:-1;
+                ctx.strokeStyle='#15803d'; ctx.lineWidth=1;
+                ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx+dir*10,by-7); ctx.stroke();
+                leaf(bx+dir*9, by-7, 6, dir>0?-0.3:3.5, '#22c55e', 0.88);
+                leaf(bx, by, 5, dir>0?0.5:-0.5, '#16a34a', 0.8);
+            }
+            // tomates
+            const fc=ti===0?['#ef4444','#dc2626']:['#f97316','#ea580c'];
+            for(let f=0;f<2;f++){
+                const fy=-soilH-(H*0.35)-f*14; const fx=tx+sw*0.8+(f%2===0?5:-5);
+                ctx.fillStyle=fc[f%2]; ctx.globalAlpha=0.75+(ti===0?pulse:1)*0.25;
+                ctx.beginPath(); ctx.arc(fx,fy,5.5,0,Math.PI*2); ctx.fill();
+                ctx.fillStyle='#15803d'; ctx.globalAlpha=1; ctx.lineWidth=1;
+                ctx.beginPath(); ctx.moveTo(fx,fy-5.5); ctx.lineTo(fx-2,fy-8); ctx.stroke();
+                ctx.globalAlpha=1;
+            }
+        });
+        if(isActive){ctx.save();ctx.shadowBlur=18;ctx.shadowColor=m.color;ctx.strokeStyle=m.color;ctx.lineWidth=1.5;ctx.globalAlpha=0.4;ctx.strokeRect(-W/2,-H,W,H);ctx.restore();}
     }
 
-    // ── ESTAÇÃO DE FERRAMENTAS ────────────────────────────────────────────────
-    else if (m.type === 'tools') {
-        const W = 52; const H = 82; const x = outer - W;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(x, -H/2, W, H);
-        ctx.strokeStyle = isActive ? m.color : '#334155';
-        ctx.lineWidth = isActive ? 1.5 : 1;
-        ctx.strokeRect(x, -H/2, W, H);
+    // ── PAINEL DE CONTROLE ────────────────────────────────────────────────────
+    else if(m.type==='control'){
+        ctx.fillStyle='#020d18'; ctx.fillRect(-W/2,-H,W,H);
+        ctx.strokeStyle=isActive?m.color:'#0f2a3a'; ctx.lineWidth=1.5; ctx.strokeRect(-W/2,-H,W,H);
 
-        // Prateleiras
-        for (let shelf = 0; shelf < 4; shelf++) {
-            const sy = -H/2 + 10 + shelf * 18;
-            ctx.fillStyle = '#1e293b';
-            ctx.fillRect(x + 3, sy, W - 6, 2);
-            
-            // Ferramentas na prateleira
-            ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.5;
-            
-            // Tesoura
-            if (shelf === 0) {
-                ctx.beginPath(); ctx.arc(x + 12, sy + 6, 3, 0, Math.PI * 2); ctx.stroke();
-                ctx.beginPath(); ctx.arc(x + 18, sy + 6, 3, 0, Math.PI * 2); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(x + 12, sy + 6); ctx.lineTo(x + 18, sy + 6); ctx.stroke();
-            }
-            // Luvas
-            else if (shelf === 1) {
-                ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.6;
-                ctx.beginPath(); ctx.roundRect(x + 10, sy + 4, 6, 5, 1); ctx.fill();
-                ctx.beginPath(); ctx.roundRect(x + 18, sy + 4, 6, 5, 1); ctx.fill();
-                ctx.globalAlpha = 1;
-            }
-            // Medidor
-            else if (shelf === 2) {
-                ctx.fillStyle = '#fbbf24';
-                ctx.beginPath(); ctx.roundRect(x + 12, sy + 3, 12, 7, 2); ctx.fill();
-                ctx.fillStyle = '#0f172a';
-                ctx.fillText('pH', x + 14, sy + 8);
-            }
-        }
+        // monitor (topo interno - perto do centro)
+        const monH=H*0.52; const monY=-H+5;
+        ctx.fillStyle='#0f172a'; ctx.beginPath(); ctx.roundRect(-W/2+4,monY,W-8,monH,4); ctx.fill();
+        ctx.strokeStyle='#1e3a4a'; ctx.lineWidth=1; ctx.strokeRect(-W/2+4,monY,W-8,monH);
+        ctx.fillStyle='#050e1a'; ctx.fillRect(-W/2+6,monY+2,W-12,monH-4);
 
-        if (isActive) {
-            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
-            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
-            ctx.strokeRect(x, -H/2, W, H); ctx.restore();
-        }
+        const metrics=[{label:'pH',val:'6.2',color:'#86efac'},{label:'EC',val:'2.1',color:'#fde68a'},{label:'HUM',val:'78%',color:'#38bdf8'},{label:'CO2',val:'412',color:'#c084fc'}];
+        metrics.forEach((m2,i)=>{
+            const mx=-W/2+8+(i%2)*24, my=monY+5+Math.floor(i/2)*18;
+            ctx.fillStyle='#0a1827'; ctx.fillRect(mx,my,20,14);
+            ctx.font='4px Orbitron,monospace'; ctx.fillStyle=m2.color; ctx.globalAlpha=0.5;
+            ctx.fillText(m2.label,mx+2,my+6); ctx.globalAlpha=0.8+pulse*0.2;
+            ctx.font='5px Orbitron,monospace'; ctx.fillText(m2.val,mx+2,my+13); ctx.globalAlpha=1;
+        });
+
+        // barras
+        const bY=monY+monH-18;
+        [0.7,0.4,0.85,0.6,0.9,0.5,0.75,0.65].forEach((b,i)=>{
+            const bx=-W/2+7+i*6, bH=14;
+            ctx.fillStyle='#0a1a0f'; ctx.fillRect(bx,bY,4,bH);
+            ctx.fillStyle='#38bdf8'; ctx.globalAlpha=0.5+pulse*0.3;
+            ctx.fillRect(bx,bY+bH*(1-b),4,bH*b); ctx.globalAlpha=1;
+        });
+
+        // switches (mais proximo do chao)
+        const swY=-H+5+monH+8;
+        ctx.fillStyle='#0f172a'; ctx.fillRect(-W/2+3,swY,W-6,H-monH-18);
+        ['#22c55e','#38bdf8','#22c55e','#ef4444'].forEach((sc,sw)=>{
+            const swx=-W/2+9+sw*12;
+            ctx.fillStyle='#1e293b'; ctx.fillRect(swx,swY+4,9,12);
+            ctx.fillStyle=sc; ctx.globalAlpha=sw===3?(0.3+pulse*0.4):0.7;
+            ctx.beginPath(); ctx.arc(swx+4.5,swY+11,3,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+        });
+
+        ctx.fillStyle=m.color; ctx.globalAlpha=0.04+pulse*0.04;
+        ctx.fillRect(-W/2+6,monY+2,W-12,monH-4); ctx.globalAlpha=1;
     }
 
-    // ── COMPOSTAGEM ────────────────────────────────────────────────────────────
-    else if (m.type === 'compost') {
-        const W = 50; const H = 80; const x = outer - W;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(x, -H/2, W, H);
-        ctx.strokeStyle = isActive ? m.color : '#334155';
-        ctx.lineWidth = isActive ? 1.5 : 1;
-        ctx.strokeRect(x, -H/2, W, H);
+    // ── FERRAMENTAS ───────────────────────────────────────────────────────────
+    else if(m.type==='tools'){
+        ctx.fillStyle='#08051a'; ctx.fillRect(-W/2,-H,W,H);
+        ctx.strokeStyle=isActive?m.color:'#1e1535'; ctx.lineWidth=1.5; ctx.strokeRect(-W/2,-H,W,H);
 
-        // Camadas de compostagem
-        const colors = ['#78350f', '#92400e', '#a16207', '#b45309'];
-        for (let layer = 0; layer < 4; layer++) {
-            const ly = -H/2 + 8 + layer * 18;
-            ctx.fillStyle = colors[layer];
-            ctx.globalAlpha = 0.6 + Math.sin(time * 1.5 + layer) * 0.3;
-            ctx.fillRect(x + 5, ly, W - 10, 14);
-            
-            // Partículas de decomposição
-            for (let p = 0; p < 3; p++) {
-                ctx.fillStyle = '#fbbf24';
-                ctx.globalAlpha = 0.3;
-                const px = x + 8 + p * 12;
-                const py = ly + 4 + Math.sin(time * 2 + p) * 3;
-                ctx.beginPath(); ctx.arc(px, py, 1, 0, Math.PI * 2); ctx.fill();
+        // prateleira perto do teto (y=-H+14)
+        const shY=-H+16;
+        ctx.fillStyle='#1e1a2e'; ctx.fillRect(-W/2+3,shY,W-6,4);
+
+        // tesoura de poda (presa na prateleira, subindo para o centro)
+        ctx.save(); ctx.translate(-W/2+13,shY);
+        ctx.fillStyle='#64748b'; ctx.fillRect(-3,0,6,8);
+        ctx.strokeStyle='#cbd5e1'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-6,-14); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(6,-14); ctx.stroke();
+        ctx.fillStyle='#94a3b8'; ctx.beginPath(); ctx.arc(0,0,2,0,Math.PI*2); ctx.fill();
+        ctx.restore();
+
+        // pa de mao (presa na prateleira)
+        ctx.save(); ctx.translate(-W/2+28,shY);
+        ctx.fillStyle='#92400e'; ctx.fillRect(-2,0,4,12);
+        ctx.fillStyle='#a16207'; ctx.beginPath(); ctx.moveTo(-7,0); ctx.lineTo(7,0); ctx.lineTo(5,-10); ctx.lineTo(-5,-10); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#78350f'; ctx.beginPath(); ctx.moveTo(-5,-10); ctx.lineTo(5,-10); ctx.lineTo(3,-16); ctx.lineTo(-3,-16); ctx.closePath(); ctx.fill();
+        ctx.restore();
+
+        // spray (preso na prateleira)
+        ctx.save(); ctx.translate(-W/2+43,shY+2);
+        ctx.fillStyle='#1d4ed8'; ctx.beginPath(); ctx.ellipse(0,6,5,9,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#60a5fa'; ctx.fillRect(-1,-8,2,10); ctx.fillRect(-1,-8,8,2);
+        for(let sp=0;sp<4;sp++){ctx.fillStyle='#7dd3fc';ctx.globalAlpha=0.5+Math.sin(time*5+sp)*0.4;ctx.beginPath();ctx.arc(7+sp*3,-8-sp*2,1.2,0,Math.PI*2);ctx.fill();}
+        ctx.globalAlpha=1; ctx.restore();
+
+        // bancada de trabalho (no meio do modulo verticalmente)
+        const benchY=-H*0.44;
+        ctx.fillStyle='#1e293b'; ctx.fillRect(-W/2+3,benchY,W-6,5);
+        ctx.strokeStyle='#334155'; ctx.lineWidth=1; ctx.strokeRect(-W/2+3,benchY,W-6,5);
+        ctx.fillStyle='#334155';
+        ctx.fillRect(-W/2+5,benchY+5,3,Math.abs(benchY)-5);
+        ctx.fillRect(W/2-8,benchY+5,3,Math.abs(benchY)-5);
+
+        // itens na bancada (abaixo dela, entre bancada e chao)
+        // medidor pH
+        ctx.fillStyle='#1a0a2e'; ctx.beginPath(); ctx.roundRect(-W/2+8,benchY-22,16,20,3); ctx.fill();
+        ctx.strokeStyle='#c084fc'; ctx.lineWidth=1; ctx.strokeRect(-W/2+8,benchY-22,16,20);
+        ctx.fillStyle='#12061e'; ctx.fillRect(-W/2+10,benchY-20,12,10);
+        ctx.fillStyle='#c084fc'; ctx.globalAlpha=0.5+pulse*0.4; ctx.font='5px Orbitron'; ctx.fillText('6.2',-W/2+11,benchY-12); ctx.globalAlpha=1;
+        ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(-W/2+16,benchY-2); ctx.lineTo(-W/2+16,benchY+4); ctx.stroke();
+        ctx.fillStyle='#475569'; ctx.beginPath(); ctx.arc(-W/2+16,benchY+5,2,0,Math.PI*2); ctx.fill();
+
+        // seringa (deitada na bancada)
+        ctx.save(); ctx.translate(-W/2+32,benchY-6); ctx.rotate(-0.3);
+        ctx.fillStyle='#e2e8f0'; ctx.fillRect(-12,-2,20,4);
+        ctx.fillStyle='#94a3b8'; ctx.fillRect(-15,-3,4,6);
+        ctx.fillStyle='#22c55e'; ctx.globalAlpha=0.7; ctx.fillRect(-11,-1.5,12,3); ctx.globalAlpha=1;
+        ctx.fillStyle='#94a3b8'; ctx.fillRect(8,-1,4,2); ctx.restore();
+
+        // luvas penduradas na parede do teto
+        ctx.save(); ctx.translate(-W/2+8,-H+30);
+        ctx.fillStyle='#166534'; ctx.beginPath(); ctx.roundRect(-5,0,9,14,3); ctx.fill();
+        ctx.fillStyle='#15803d';
+        ctx.beginPath(); ctx.arc(-3,0,3,Math.PI,0); ctx.fill();
+        ctx.beginPath(); ctx.arc(1,0,3,Math.PI,0); ctx.fill();
+        ctx.restore();
+
+        // etiqueta
+        ctx.fillStyle='#fef3c7'; ctx.fillRect(W/2-20,-H+18,14,10);
+        ctx.strokeStyle='#d97706'; ctx.lineWidth=0.8; ctx.strokeRect(W/2-20,-H+18,14,10);
+        ctx.fillStyle='#92400e'; ctx.font='4px Rajdhani'; ctx.fillText('JOHN',W/2-18,-H+26);
+
+        if(isActive){ctx.save();ctx.shadowBlur=18;ctx.shadowColor=m.color;ctx.strokeStyle=m.color;ctx.lineWidth=1.5;ctx.globalAlpha=0.38;ctx.strokeRect(-W/2,-H,W,H);ctx.restore();}
+    }
+
+    // ── VIVEIRO DE MUDAS ──────────────────────────────────────────────────────
+    else if(m.type==='seedling'){
+        ctx.fillStyle='#0d0218'; ctx.fillRect(-W/2,-H,W,H);
+        ctx.strokeStyle=isActive?m.color:'#2d0a35'; ctx.lineWidth=1.5; ctx.strokeRect(-W/2,-H,W,H);
+
+        // LED strip no teto (y=-H+5)
+        const ledY=-H+5;
+        ctx.fillStyle='#581c87'; ctx.fillRect(-W/2+4,ledY,W-8,5);
+        ctx.fillStyle='#f9a8d4'; ctx.globalAlpha=0.65+pulse*0.35;
+        for(let led=0;led<8;led++){ctx.beginPath();ctx.arc(-W/2+8+led*7,ledY+2.5,2.5,0,Math.PI*2);ctx.fill();}
+        ctx.globalAlpha=0.07+pulse*0.06; ctx.fillStyle='#f9a8d4';
+        ctx.fillRect(-W/2+4,ledY+5,W-8,H*0.5); ctx.globalAlpha=1;
+
+        // 2 bandejas (distribuidas verticalmente, crescendo do chao para cima)
+        const trayYs=[-H*0.62, -H*0.3]; // posicoes y (centros das bandejas)
+        trayYs.forEach((ty,ti)=>{
+            const tW=W-8; const tH=H*0.26;
+            ctx.fillStyle='#1e293b'; ctx.beginPath(); ctx.roundRect(-tW/2,ty,tW,tH,3); ctx.fill();
+            ctx.strokeStyle='#334155'; ctx.lineWidth=1; ctx.strokeRect(-tW/2,ty,tW,tH);
+
+            for(let c=0;c<4;c++){
+                const capX=-tW/2+6+c*((tW-12)/3);
+                const capW=(tW-12)/3-2; const capH=tH-8;
+                const capY=ty+3;
+                ctx.fillStyle='#451a03'; ctx.fillRect(capX,capY,capW,capH);
+                ctx.fillStyle='#78350f'; ctx.fillRect(capX,capY,capW,3);
+
+                const stage=(ti*4+c)%4;
+                const sw2=Math.sin(time*1.2+c+ti*3)*1.2;
+                const bX=capX+capW/2; const bY=capY; // topo do solo = base da muda
+
+                if(stage===0){ctx.fillStyle='#fde68a';ctx.globalAlpha=0.5;ctx.beginPath();ctx.ellipse(bX,bY-2,2,1.5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+                else if(stage===1){ctx.strokeStyle='#15803d';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(bX,bY);ctx.lineTo(bX+sw2,bY-5);ctx.stroke();leaf(bX+sw2-2,bY-5,2.5,-0.4,'#86efac',0.8);}
+                else if(stage===2){ctx.strokeStyle='#16a34a';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(bX,bY);ctx.lineTo(bX+sw2,bY-9);ctx.stroke();leaf(bX+sw2-3,bY-6,3.5,-0.5,'#4ade80',0.85);leaf(bX+sw2+2,bY-7,3,0.7,'#22c55e',0.8);}
+                else{ctx.strokeStyle='#15803d';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(bX,bY);ctx.lineTo(bX+sw2,bY-14);ctx.stroke();leaf(bX+sw2-4,bY-9,4,-0.6,'#86efac',0.9);leaf(bX+sw2+3,bY-8,3.5,0.8,'#4ade80',0.85);leaf(bX+sw2,bY-14,3,0.1,'#bbf7d0',0.7);ctx.fillStyle=m.color;ctx.globalAlpha=0.7+pulse*0.3;ctx.beginPath();ctx.arc(bX+sw2,bY-16,2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
             }
-        }
-        ctx.globalAlpha = 1;
+            // pes da bandeja
+            ctx.fillStyle='#334155'; ctx.fillRect(-tW/2+4,ty+tH,3,5); ctx.fillRect(tW/2-7,ty+tH,3,5);
+        });
 
-        if (isActive) {
-            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
-            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
-            ctx.strokeRect(x, -H/2, W, H); ctx.restore();
-        }
+        // reservatorio no chao
+        ctx.fillStyle='#0c4a6e'; ctx.beginPath(); ctx.roundRect(-16,-20,32,18,3); ctx.fill();
+        ctx.fillStyle='#38bdf8'; ctx.globalAlpha=0.5; ctx.fillRect(-14,-14,28,11); ctx.globalAlpha=1;
+        ctx.strokeStyle='#0369a1'; ctx.lineWidth=1; ctx.strokeRect(-16,-20,32,18);
+        ctx.strokeStyle='#94a3b8'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(0,-28); ctx.stroke();
+        // etiqueta
+        ctx.fillStyle='#fef3c7'; ctx.fillRect(18,-28,16,12);
+        ctx.strokeStyle='#d97706'; ctx.lineWidth=0.8; ctx.strokeRect(18,-28,16,12);
+        ctx.fillStyle='#92400e'; ctx.font='4px Rajdhani'; ctx.fillText('DIA 6',20,-19);
+
+        if(isActive){ctx.save();ctx.shadowBlur=20;ctx.shadowColor=m.color;ctx.strokeStyle=m.color;ctx.lineWidth=1.5;ctx.globalAlpha=0.42;ctx.strokeRect(-W/2,-H,W,H);ctx.restore();}
     }
 
-    // ── PAINEL DE CONTROLE ─────────────────────────────────────────────────────
-    else if (m.type === 'control') {
-        const W = 50; const H = 75; const x = outer - W;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(x, -H/2, W, H);
-        ctx.strokeStyle = isActive ? m.color : '#334155';
-        ctx.lineWidth = isActive ? 1.5 : 1;
-        ctx.strokeRect(x, -H/2, W, H);
+    // ── SAIDA ─────────────────────────────────────────────────────────────────
+    else if(m.type==='exit'){
+        const dW=42; const dH=H;
+        ctx.fillStyle='#0a1a0a'; ctx.fillRect(-dW/2,-dH,dW,dH);
+        ctx.strokeStyle='#334155'; ctx.lineWidth=2; ctx.strokeRect(-dW/2,-dH,dW,dH);
+        if(isActive){ctx.save();ctx.shadowBlur=22;ctx.shadowColor=m.color;ctx.strokeStyle=m.color;ctx.lineWidth=3;ctx.globalAlpha=0.5+pulse*0.5;ctx.strokeRect(-dW/2-2,-dH-2,dW+4,dH+4);ctx.restore();}
 
-        // Tela do monitor
-        ctx.fillStyle = '#1c0505';
-        ctx.fillRect(x + 4, -H/2 + 4, W - 8, 30);
-        ctx.strokeStyle = '#f87171'; ctx.lineWidth = 1;
-        ctx.strokeRect(x + 4, -H/2 + 4, W - 8, 30);
+        // portas deslizantes (abrem lateralmente em x)
+        const slide=isActive?(dW/2)*0.7:0;
+        ctx.save(); ctx.beginPath(); ctx.rect(-dW/2,-dH,dW,dH); ctx.clip();
+        ctx.fillStyle='#1e293b';
+        ctx.fillRect(-dW/2-slide,-dH,dW/2,dH);
+        ctx.fillRect(slide,-dH,dW/2,dH);
+        ctx.fillStyle=m.color; ctx.globalAlpha=0.2;
+        ctx.fillRect(-1,-dH,2,dH);
+        ctx.restore();
 
-        // Dados na tela
-        ctx.fillStyle = '#22c55e'; ctx.globalAlpha = 0.6 + pulse * 0.4;
-        ctx.font = '3px Orbitron, monospace';
-        ctx.fillText('TEMP: 22.3C', x + 6, -H/2 + 12);
-        ctx.fillText('HUM: 78%', x + 6, -H/2 + 18);
-        ctx.fillText('CO2: 420ppm', x + 6, -H/2 + 24);
-        ctx.globalAlpha = 1;
-
-        // Botões de controle
-        ctx.fillStyle = '#334155';
-        for (let b = 0; b < 4; b++) {
-            ctx.beginPath(); ctx.arc(x + 10 + b * 10, H/2 - 12, 2.5, 0, Math.PI * 2); ctx.fill();
-        }
-
-        // LEDs indicadores
-        ctx.fillStyle = '#22c55e'; ctx.globalAlpha = pulse;
-        ctx.beginPath(); ctx.arc(x + W - 6, -H/2 + 8, 2, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 1;
-
-        if (isActive) {
-            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
-            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
-            ctx.strokeRect(x, -H/2, W, H); ctx.restore();
-        }
-    }
-
-    // ── PORTA DE SAÍDA ─────────────────────────────────────────────────────────
-    else if (m.type === 'exit') {
-        const portalW = ringWidth * 0.45;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(inner + 2, -portalW/2, ringWidth - 4, portalW);
-        ctx.strokeStyle = isActive ? m.color : '#334155';
-        ctx.lineWidth = isActive ? 2 : 1;
-        if (isActive) {
-            ctx.shadowBlur = 20; ctx.shadowColor = m.color;
-            ctx.strokeRect(inner, -portalW/2 - 2, ringWidth, portalW + 4);
-            ctx.shadowBlur = 0;
-        } else {
-            ctx.strokeRect(inner, -portalW/2 - 2, ringWidth, portalW + 4);
-        }
-
-        const slide = isActive ? (portalW/2) * 0.7 : 0;
-        ctx.beginPath(); ctx.rect(inner+2, -portalW/2, ringWidth-4, portalW); ctx.clip();
-        ctx.fillStyle = isActive ? m.color : '#334155';
-        ctx.globalAlpha = 0.3;
-        ctx.fillRect(inner+2, -portalW/2 - slide, ringWidth, portalW/2);
-        ctx.fillRect(inner+2, slide, ringWidth, portalW/2);
-        ctx.globalAlpha = 1;
+        // LED de status no meio
+        ctx.fillStyle=isActive?'#ef4444':'#22c55e'; ctx.globalAlpha=0.6+pulse*0.4;
+        ctx.beginPath(); ctx.arc(0,-dH*0.5,4,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+        if(!isActive){ctx.fillStyle='#fff';ctx.globalAlpha=0.6;ctx.font='4px Orbitron';ctx.textAlign='center';ctx.fillText('OK',0,-dH*0.5+1.5);ctx.textAlign='left';ctx.globalAlpha=1;}
     }
 
     ctx.restore();
+
+    // deteccao de proximidade
+    const pA=((playerAngle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+    const mA=((m.angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+    let diff=Math.abs(pA-mA); if(diff>Math.PI)diff=Math.PI*2-diff;
+    return diff<0.22;
 }
 
-// ─── UPDATE ───────────────────────────────────────────────────────────────────
-function update() {
-    playerVel += input;
-    playerVel *= 0.92;
-    playerAngle += playerVel;
-    stationRot += playerVel * 0.3;
-    time += 0.016;
-
-    // Atualizar partículas
-    particles.forEach(p => { p.angle += p.speed; });
-
-    // Detectar módulo ativo
-    let minDist = Infinity;
-    let closest = null;
-    modules.forEach(m => {
-        let angleDiff = playerAngle - m.angle;
-        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-        if (Math.abs(angleDiff) < minDist) {
-            minDist = Math.abs(angleDiff);
-            closest = m;
-        }
-    });
-
-    if (minDist < 0.3) {
-        if (currentActiveModule !== closest) {
-            currentActiveModule = closest;
-            mTitle.textContent = closest.name;
-            mDesc.textContent = closest.desc;
-            mCard.classList.add('visible');
-            actBtn.classList.add('active');
-        }
-    } else {
-        if (currentActiveModule) {
-            mCard.classList.remove('visible');
-            actBtn.classList.remove('active');
-            currentActiveModule = null;
-        }
-    }
+// ─── ASTRONAUTA ───────────────────────────────────────────────────────────────
+function drawAstronaut(t,vel){
+    ctx.save();
+    const moving=Math.abs(vel)>0.0004;
+    const wp=moving?Math.sin(t*11):0;
+    if(vel>0.0001)ctx.scale(-1,1);
+    const s=ringRadius/200;
+    ctx.scale(s,s); ctx.translate(0,12);
+    const white='#ffffff',bGrey='#cbd5e1',green='#86efac';
+    ctx.save();ctx.translate(-5.5,-2);ctx.rotate(moving?wp*0.6:0);ctx.fillStyle=bGrey;ctx.beginPath();ctx.roundRect(-4.4,0,8.8,17.6,[1,1,4,4]);ctx.fill();ctx.restore();
+    ctx.save();ctx.translate(5.5,-2);ctx.rotate(moving?-wp*0.6:0);ctx.fillStyle=white;ctx.beginPath();ctx.roundRect(-4.4,0,8.8,17.6,[1,1,4,4]);ctx.fill();ctx.restore();
+    ctx.save();
+    const bounce=moving?Math.abs(Math.sin(t*11))*1.3:0;
+    ctx.translate(0,-bounce-2);
+    ctx.fillStyle='#1e3a1e';ctx.beginPath();ctx.roundRect(-14,-28,10,24,4);ctx.fill();
+    ctx.fillStyle=white;ctx.beginPath();ctx.roundRect(-12,-32,24,32,[8,8,4,4]);ctx.fill();
+    ctx.fillStyle='#22c55e';ctx.globalAlpha=0.6+Math.sin(t*3)*0.4;ctx.beginPath();ctx.arc(0,-18,4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    ctx.fillStyle=green;ctx.globalAlpha=0.5+Math.sin(t*4)*0.5;ctx.fillRect(-5,-22,10,2);ctx.globalAlpha=1;
+    ctx.save();ctx.translate(-10,-25);ctx.rotate(moving?-wp*0.8:0.2);ctx.fillStyle=bGrey;ctx.beginPath();ctx.roundRect(-3.3,0,6.6,19.8,4);ctx.fill();ctx.restore();
+    ctx.save();ctx.translate(10,-25);ctx.rotate(moving?wp*0.8:-0.2);ctx.fillStyle=white;ctx.beginPath();ctx.roundRect(-3.3,0,6.6,19.8,4);ctx.fill();ctx.restore();
+    ctx.save();ctx.translate(0,-38);ctx.fillStyle=white;ctx.beginPath();ctx.arc(0,0,14,0,Math.PI*2);ctx.fill();ctx.fillStyle='#0f1f10';ctx.beginPath();ctx.ellipse(4,-1,11,8,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#86efac';ctx.globalAlpha=0.12;ctx.beginPath();ctx.ellipse(4,-1,11,8,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.restore();
+    ctx.restore();ctx.restore();
 }
 
-// ─── DRAW ─────────────────────────────────────────────────────────────────────
-function draw() {
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, w, h);
+// ─── INPUT ────────────────────────────────────────────────────────────────────
+const setInput=(id,val)=>{
+    const el=document.getElementById(id);
+    el.addEventListener('mousedown',(e)=>{e.preventDefault();sfx.init();input=val;sfx.playNav();});
+    el.addEventListener('touchstart',(e)=>{e.preventDefault();sfx.init();input=val;sfx.playNav();},{passive:false});
+    window.addEventListener('mouseup',()=>{if(input===val)input=0;});
+    window.addEventListener('touchend',()=>{if(input===val)input=0;});
+};
+setInput('btn-left',0.0012); setInput('btn-right',-0.0012);
+window.addEventListener('keydown',(e)=>{sfx.init();const k=e.key.toLowerCase();if(k==='a'||k==='arrowleft')input=0.0012;if(k==='d'||k==='arrowright')input=-0.0012;if(e.key==='Enter')triggerAction();});
+window.addEventListener('keyup',(e)=>{const k=e.key.toLowerCase();if((k==='a'||k==='arrowleft')&&input>0)input=0;if((k==='d'||k==='arrowright')&&input<0)input=0;});
+window.addEventListener('click',()=>sfx.init());
 
-    // Estrelas
-    ctx.fillStyle = '#fff';
-    stars.forEach(s => {
-        ctx.globalAlpha = s.o;
-        ctx.beginPath(); ctx.arc(cx + s.x, cy + s.y, s.s, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-
-    // Partículas (pólen)
-    ctx.save(); ctx.translate(cx, cy); ctx.rotate(stationRot);
-    particles.forEach(p => {
-        const x = Math.cos(p.angle) * ringRadius * p.r;
-        const y = Math.sin(p.angle) * ringRadius * p.r;
-        ctx.fillStyle = '#22c55e';
-        ctx.globalAlpha = p.opacity;
-        ctx.beginPath(); ctx.arc(x, y, p.size, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-    ctx.restore();
-
-    // Anel principal
-    ctx.save(); ctx.translate(cx, cy); ctx.rotate(stationRot);
-    ctx.strokeStyle = 'rgba(34, 197, 94, 0.1)';
-    ctx.lineWidth = ringWidth;
-    ctx.beginPath(); ctx.arc(0, 0, ringRadius, 0, Math.PI * 2); ctx.stroke();
-
-    // Módulos
-    modules.forEach(m => {
-        const isActive = m === currentActiveModule;
-        drawModule(m, isActive);
-    });
-
-    // Astronauta
-    drawAstronaut(time, playerVel);
-    ctx.restore();
+function triggerAction(){
+    if(!currentActiveModule)return;
+    sfx.init();sfx.playInteract();
+    if(currentActiveModule.link){actBtn.style.transform='scale(0.92)';setTimeout(()=>{window.location.href=currentActiveModule.link;},120);}
 }
+actBtn.addEventListener('click',triggerAction);
 
 // ─── LOOP ─────────────────────────────────────────────────────────────────────
-function loop() {
-    update();
-    draw();
+function loop(){
+    resize(); time+=0.016; stationRot+=0.0006;
+    playerVel+=input; playerVel*=0.84; playerAngle+=playerVel;
+    if(Math.abs(playerVel)>0.0008&&time-lastStep>0.55){sfx.playFootstep();lastStep=time;}
+
+    ctx.clearRect(0,0,w,h); ctx.fillStyle='#010805'; ctx.fillRect(0,0,w,h);
+
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(stationRot*0.35);
+    stars.forEach(s=>{ctx.globalAlpha=s.o*(0.6+Math.sin(time*1.3+s.x)*0.4);ctx.fillStyle=Math.random()>0.97?'#86efac':'#ffffff';ctx.beginPath();ctx.arc(s.x,s.y,s.s,0,Math.PI*2);ctx.fill();});
+    ctx.restore();
+
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(stationRot);
+    const rIn=ringRadius-ringWidth/2, rOut=ringRadius+ringWidth/2;
+
+    const rG=ctx.createRadialGradient(0,0,rIn,0,0,rOut);
+    rG.addColorStop(0,'#020f05'); rG.addColorStop(0.3,'#071a09'); rG.addColorStop(0.7,'#071a09'); rG.addColorStop(1,'#020f05');
+    ctx.beginPath(); ctx.arc(0,0,rOut,0,Math.PI*2,false); ctx.arc(0,0,rIn,0,Math.PI*2,true);
+    ctx.fillStyle=rG; ctx.fill();
+
+    ctx.strokeStyle='rgba(134,239,172,0.035)'; ctx.lineWidth=1;
+    for(let i=0;i<24;i++){ctx.save();ctx.rotate(i*(Math.PI/12));ctx.beginPath();ctx.moveTo(rIn,0);ctx.lineTo(rOut,0);ctx.stroke();ctx.restore();}
+
+    spores.forEach(d=>{
+        d.angle+=d.speed;
+        const dr=rIn+d.r*ringWidth;
+        ctx.globalAlpha=d.opacity*(0.4+Math.sin(time*1.8+d.angle*3)*0.6);
+        ctx.fillStyle=d.color; ctx.beginPath(); ctx.arc(Math.cos(d.angle)*dr,Math.sin(d.angle)*dr,d.size,0,Math.PI*2); ctx.fill();
+    }); ctx.globalAlpha=1;
+
+    ctx.beginPath(); ctx.arc(0,0,rIn,0,Math.PI*2); ctx.strokeStyle='rgba(134,239,172,0.28)'; ctx.lineWidth=3; ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,0,rIn+3,0,Math.PI*2); ctx.strokeStyle='rgba(134,239,172,0.07)'; ctx.lineWidth=1; ctx.stroke();
+
+    drawVines(time);
+
+    let activeMod=null;
+    modules.forEach(m=>{if(drawModule(m,false)&&!activeMod)activeMod=m;});
+    if(activeMod){drawModule(activeMod,true);sfx.updateProximity(true);}else{sfx.updateProximity(false);}
+    currentActiveModule=activeMod;
+
+    // astronauta
+    ctx.save(); ctx.rotate(playerAngle); ctx.translate(rOut-22,0); ctx.rotate(-Math.PI/2); drawAstronaut(time,playerVel); ctx.restore();
+
+    // chao
+    ctx.beginPath(); ctx.arc(0,0,rOut,0,Math.PI*2); ctx.strokeStyle='rgba(134,239,172,0.82)'; ctx.lineWidth=8; ctx.stroke();
+    ctx.restore();
+
+    // UI
+    if(currentActiveModule){
+        mTitle.innerText=currentActiveModule.name; mTitle.style.color=currentActiveModule.color; mTitle.style.textShadow=`0 0 14px ${currentActiveModule.color}`;
+        mDesc.innerText=currentActiveModule.desc; mCard.classList.add('visible'); actBtn.classList.add('active');
+        actBtn.style.background=currentActiveModule.color; actBtn.style.boxShadow=`0 0 30px ${currentActiveModule.color}55`;
+        const labels={exit:'SAIR DO<br>BIO-DOME',control:'VER<br>DADOS',tomato:'IRRIGAR<br>TOMATES',hydro:'VERIFICAR<br>SISTEMA',seedling:'EXAMINAR<br>MUDAS',tools:'USAR<br>FERRAMENTAS'};
+        actBtn.innerHTML=`<b>${labels[currentActiveModule.type]||'EXAMINAR<br>MODULO'}</b>`;
+    }else{mCard.classList.remove('visible');actBtn.classList.remove('active');}
     requestAnimationFrame(loop);
 }
-
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-resize();
-window.addEventListener('resize', resize);
-loop();
+window.onload=loop;
 </script>
 </body>
 </html>
