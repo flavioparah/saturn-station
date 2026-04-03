@@ -22,7 +22,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Fundo de Aço Escovado aplicado ao Body para eliminar o branco */
         body, html {
             margin: 0; padding: 0;
             width: 100%; height: 100%;
@@ -32,7 +31,7 @@
             justify-content: center;
             overflow: hidden;
             
-            /* Textura de Aço Escovado */
+            /* Textura de Aço Escovado no Fundo Total */
             background: 
                 url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Ffilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
                 linear-gradient(
@@ -46,7 +45,6 @@
             background-blend-mode: overlay;
         }
 
-        /* Efeito de ranhuras no metal em todo o fundo */
         body::before {
             content: "";
             position: fixed;
@@ -67,12 +65,10 @@
             width: 95vw;
             max-width: 500px;
             padding: 40px 25px;
-            background: rgba(40, 40, 45, 0.4); /* Levemente translúcido para fundir com o body */
+            background: rgba(40, 40, 45, 0.4);
             border: 3px solid #444;
             border-radius: 4px;
-            box-shadow: 
-                0 0 100px rgba(0,0,0,0.9), 
-                inset 1px 1px 2px rgba(255,255,255,0.1);
+            box-shadow: 0 0 100px rgba(0,0,0,0.9), inset 1px 1px 2px rgba(255,255,255,0.1);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -107,9 +103,7 @@
             border: 5px solid #000;
             border-radius: 2px;
             padding: 25px 15px;
-            box-shadow: 
-                inset 0 0 40px rgba(0,0,0,1),
-                0 0 20px rgba(0,0,0,0.5);
+            box-shadow: inset 0 0 40px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.5);
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -141,7 +135,7 @@
 
         .ring {
             position: absolute; border-radius: 50%; border: 2px solid rgba(74, 222, 128, 0.08);
-            cursor: pointer; transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex; justify-content: center;
         }
         .ring:hover { border-color: var(--neon); box-shadow: inset 0 0 15px var(--neon-dim); }
@@ -222,18 +216,21 @@
             } catch(e) {}
         }
 
+        // Posições aleatórias iniciais (múltiplos de 45 graus)
         const state = {
             outer: (Math.floor(Math.random() * 7) + 1) * 45,
             middle: (Math.floor(Math.random() * 7) + 1) * 45,
             inner: (Math.floor(Math.random() * 7) + 1) * 45
         };
 
+        // Lógica simplificada: Roda apenas o anel clicado
         function rotate(ring) {
             if (document.body.classList.contains('solved')) return;
-            beep(250, 0.1);
-            if (ring === 'outer') { state.outer += 45; state.middle += 45; }
-            else if (ring === 'middle') { state.middle += 45; state.inner += 45; }
-            else if (ring === 'inner') { state.inner += 45; state.outer += 45; }
+            beep(280, 0.05);
+            
+            // Cada anel agora é independente
+            state[ring] += 45;
+            
             render();
             check();
         }
@@ -245,18 +242,20 @@
         }
 
         function check() {
+            // Verifica se todos os anéis estão no topo (0, 360, 720...)
             if (state.outer % 360 === 0 && state.middle % 360 === 0 && state.inner % 360 === 0) {
                 document.body.classList.add('solved');
                 document.getElementById('status-title').innerText = "ACCESS GRANTED";
-                beep(500, 0.3);
-                setTimeout(() => beep(700, 0.4), 150);
+                beep(440, 0.2);
+                setTimeout(() => beep(554, 0.3), 100);
             }
         }
 
         function completeOverride() {
-            beep(900, 0.2);
+            beep(880, 0.1);
             window.parent.postMessage({ tipo: 'puzzleResolvido', portal: 'estaleiro' }, '*');
         }
+        
         render();
     </script>
 </body>
