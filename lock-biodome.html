@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bio-Dome - Terminal de Aço</title>
+    <title>Bio-Dome - Terminal de Calibração</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
@@ -11,8 +11,6 @@
             --bio-green: #22c55e;
             --bio-dark: #052e16;
             --steel: #2c2c2e;
-            --steel-light: #48484a;
-            --accent: #facc15;
         }
 
         body, html {
@@ -20,84 +18,46 @@
             width: 100%; height: 100%;
             background: #0a0a0a;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            align-items: center; justify-content: center;
             font-family: 'Orbitron', sans-serif;
             overflow: hidden;
             touch-action: none;
         }
 
-        /* Chassis em Aço Escovado */
         .steel-chassis {
             position: relative;
-            width: 95vw;
-            max-width: 500px;
-            background: 
-                url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Ffilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-                linear-gradient(135deg, #3a3a3c 0%, #1a1a1c 100%);
-            background-blend-mode: overlay;
+            width: 90vw;
+            max-width: 450px;
+            background: linear-gradient(135deg, #3a3a3c 0%, #1a1a1c 100%);
             border: 4px solid #444;
-            border-radius: 8px;
-            padding: 40px 20px;
-            box-shadow: 0 40px 80px rgba(0,0,0,0.8), inset 2px 2px 0 rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 30px 20px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.8);
         }
 
-        .screw {
-            position: absolute;
-            width: 16px; height: 16px;
-            background: radial-gradient(circle at 30% 30%, #666, #222);
-            border-radius: 50%;
-            box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-        .screw::after {
-            content: '';
-            position: absolute; width: 80%; height: 2px;
-            background: #111; top: 45%; left: 10%;
-            transform: rotate(45deg);
-        }
-        .tl { top: 15px; left: 15px; }
-        .tr { top: 15px; right: 15px; }
-        .bl { bottom: 15px; left: 15px; }
-        .br { bottom: 15px; right: 15px; }
-
-        /* Ecrã Digital */
         .digital-screen {
             background: #020602;
-            border: 10px solid #111;
+            border: 6px solid #111;
             border-radius: 4px;
-            position: relative;
-            height: 320px;
-            margin-bottom: 25px;
+            height: 300px;
+            margin-bottom: 20px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            overflow: hidden;
-            box-shadow: inset 0 0 40px rgba(34, 197, 94, 0.1);
-        }
-
-        .digital-screen::before {
-            content: "";
-            position: absolute; inset: 0;
-            background: repeating-linear-gradient(rgba(34, 197, 94, 0.03) 0px, transparent 2px, transparent 4px);
-            pointer-events: none;
-            z-index: 20;
+            position: relative;
         }
 
         .flow-container {
             display: flex;
-            gap: 15px;
+            gap: 12px;
             align-items: flex-end;
-            height: 180px;
-            z-index: 5;
-            width: 85%;
-            justify-content: center;
-            transition: opacity 0.5s;
+            height: 160px;
+            width: 80%;
         }
 
         .track {
             flex: 1;
-            max-width: 45px;
             height: 100%;
             background: rgba(34, 197, 94, 0.05);
             border: 1px solid rgba(34, 197, 94, 0.2);
@@ -116,12 +76,12 @@
 
         .target-zone {
             position: absolute;
-            top: 40%;
+            top: 45%;
             width: 100%;
-            height: 20px;
-            background: rgba(250, 204, 21, 0.1);
-            border-top: 1px dashed var(--accent);
-            border-bottom: 1px dashed var(--accent);
+            height: 10%;
+            background: rgba(255, 255, 255, 0.1);
+            border-top: 1px dashed white;
+            border-bottom: 1px dashed white;
             pointer-events: none;
         }
 
@@ -130,43 +90,29 @@
             border: 1px solid #111;
             border-bottom: 4px solid #000;
             color: #888;
-            padding: 12px 2px;
-            font-size: 9px;
+            padding: 15px 5px;
+            font-size: 10px;
             font-weight: 900;
-            text-transform: uppercase;
             cursor: pointer;
-            transition: all 0.1s;
             font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
         }
 
-        .metal-btn:active:not(:disabled) {
+        .metal-btn:active {
             border-bottom-width: 1px;
             transform: translateY(3px);
             color: var(--bio-green);
-            background: #111;
         }
 
-        .metal-btn:disabled {
-            opacity: 0.3;
-            cursor: default;
-        }
-
-        .success-content {
+        .success-overlay {
             position: absolute;
             inset: 0;
+            background: #020602;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: #020602;
-            z-index: 30;
-            text-align: center;
-            animation: screenIn 0.4s ease-out;
-        }
-
-        @keyframes screenIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
+            z-index: 100;
         }
 
         .hidden { display: none; }
@@ -175,122 +121,79 @@
 <body>
 
     <div class="steel-chassis">
-        <div class="screw tl"></div>
-        <div class="screw tr"></div>
-        <div class="screw bl"></div>
-        <div class="screw br"></div>
-
-        <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
-            <div>
-                <h1 class="text-[10px] font-black tracking-widest text-gray-400 uppercase">UNIDADE BIO-COMANDO</h1>
-                <p class="text-[8px] font-mono text-gray-600 uppercase">Sincronização de Bio-Fluxo</p>
-            </div>
-            <div id="status-led" class="flex items-center gap-2">
-                <span id="led-text" class="text-[8px] text-yellow-600 font-bold">AJUSTE REQUERIDO</span>
-                <div id="led-bulb" class="w-2 h-2 rounded-full bg-yellow-600 animate-pulse"></div>
-            </div>
+        <div class="mb-4 text-center">
+            <h1 class="text-[10px] tracking-[0.3em] text-gray-400 uppercase font-bold">BIO-SYSTEMS CALIBRATION</h1>
         </div>
 
         <div class="digital-screen">
             <div id="game-view" class="flow-container">
-                <div class="track"><div id="bar-1" class="bar" style="height: 15%;"></div><div class="target-zone"></div></div>
-                <div class="track"><div id="bar-2" class="bar" style="height: 85%;"></div><div class="target-zone"></div></div>
-                <div class="track"><div id="bar-3" class="bar" style="height: 40%;"></div><div class="target-zone"></div></div>
-                <div class="track"><div id="bar-4" class="bar" style="height: 60%;"></div><div class="target-zone"></div></div>
+                <div class="track"><div id="bar-1" class="bar" style="height: 20%;"></div><div class="target-zone"></div></div>
+                <div class="track"><div id="bar-2" class="bar" style="height: 80%;"></div><div class="target-zone"></div></div>
+                <div class="track"><div id="bar-3" class="bar" style="height: 35%;"></div><div class="target-zone"></div></div>
+                <div class="track"><div id="bar-4" class="bar" style="height: 65%;"></div><div class="target-zone"></div></div>
             </div>
 
-            <div id="game-subtext" class="mt-8 text-[9px] font-mono opacity-30 text-green-500 uppercase tracking-widest">
-                Feedback Bio-Acústico
-            </div>
-
-            <div id="success-view" class="success-content hidden">
-                <div class="text-green-500 font-bold text-2xl mb-2 tracking-tighter">BIO-DOME ACESSÍVEL</div>
-                <div class="w-16 h-[2px] bg-green-900 mb-6"></div>
-                <div class="text-[9px] font-mono text-green-800 mb-8 uppercase tracking-widest leading-loose">
-                    Sincronização: 100%<br>
-                    Status: Operacional<br>
-                    ID: BIODOME_READY
-                </div>
-                <button onclick="finalizar()" class="px-8 py-3 bg-green-600 text-black font-black uppercase text-[10px] tracking-widest hover:bg-green-400 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)]">
-                    Confirmar Entrada
+            <div id="success-view" class="success-overlay hidden">
+                <div class="text-green-500 text-xl font-bold mb-4 tracking-tighter">SINC. COMPLETA</div>
+                <button onclick="finalizarPuzzle()" class="px-6 py-3 bg-green-600 hover:bg-green-500 text-black font-black text-[10px] uppercase tracking-widest transition-colors">
+                    LIBERAR TRAVA
                 </button>
             </div>
         </div>
 
-        <div id="interface-btns" class="grid grid-cols-4 gap-2">
-            <button class="metal-btn" onclick="adjust(1)">MOD_01</button>
-            <button class="metal-btn" onclick="adjust(2)">MOD_02</button>
-            <button class="metal-btn" onclick="adjust(3)">MOD_03</button>
-            <button class="metal-btn" onclick="adjust(4)">MOD_04</button>
+        <div class="grid grid-cols-4 gap-2">
+            <button class="metal-btn" onclick="ajustar(1)">FLUXO_A</button>
+            <button class="metal-btn" onclick="ajustar(2)">FLUXO_B</button>
+            <button class="metal-btn" onclick="ajustar(3)">FLUXO_C</button>
+            <button class="metal-btn" onclick="ajustar(4)">FLUXO_D</button>
         </div>
     </div>
 
     <script>
-        const state = { v1: 15, v2: 85, v3: 40, v4: 60 };
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Estado inicial das barras de fluxo
+        const niveis = { v1: 20, v2: 80, v3: 35, v4: 65 };
 
-        function playTone(freq, type, volume, duration) {
-            try {
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + duration);
-            } catch(e) {}
+        function ajustar(id) {
+            // Lógica de interdependência: cada botão afeta a sua barra e a seguinte
+            if (id === 1) { niveis.v1 = (niveis.v1 + 15) % 100; niveis.v2 = (niveis.v2 + 5) % 100; }
+            if (id === 2) { niveis.v2 = (niveis.v2 + 15) % 100; niveis.v3 = (niveis.v3 + 5) % 100; }
+            if (id === 3) { niveis.v3 = (niveis.v3 + 15) % 100; niveis.v4 = (niveis.v4 + 5) % 100; }
+            if (id === 4) { niveis.v4 = (niveis.v4 + 15) % 100; niveis.v1 = (niveis.v1 + 5) % 100; }
+            renderizar();
         }
 
-        function adjust(id) {
-            playTone(180 + (id * 40), 'triangle', 0.1, 0.15);
-            if (id === 1) { state.v1 = (state.v1 + 15) % 105; state.v2 = (state.v2 + 5) % 105; }
-            else if (id === 2) { state.v2 = (state.v2 + 15) % 105; state.v3 = (state.v3 + 5) % 105; }
-            else if (id === 3) { state.v3 = (state.v3 + 15) % 105; state.v4 = (state.v4 + 5) % 105; }
-            else if (id === 4) { state.v4 = (state.v4 + 15) % 105; state.v1 = (state.v1 + 5) % 105; }
-            render();
-            check();
-        }
-
-        function render() {
+        function renderizar() {
             for(let i=1; i<=4; i++) {
-                const bar = document.getElementById(`bar-${i}`);
-                const val = state[`v${i}`];
-                bar.style.height = val + '%';
-                if (val >= 42 && val <= 58) {
-                    bar.style.background = '#fff';
-                    bar.style.boxShadow = '0 0 15px #fff';
+                const el = document.getElementById(`bar-${i}`);
+                const val = niveis[`v${i}`];
+                el.style.height = val + '%';
+                
+                // Realce visual se estiver dentro da margem de sucesso (45% a 55%)
+                if (val >= 45 && val <= 55) {
+                    el.style.background = '#fff';
+                    el.style.boxShadow = '0 0 20px #fff';
                 } else {
-                    bar.style.background = '';
-                    bar.style.boxShadow = '';
+                    el.style.background = '';
+                    el.style.boxShadow = '';
                 }
             }
-        }
 
-        function check() {
-            const ok = (v) => v >= 42 && v <= 58;
-            if (ok(state.v1) && ok(state.v2) && ok(state.v3) && ok(state.v4)) {
-                playTone(880, 'sine', 0.1, 0.5);
-                document.getElementById('led-text').innerText = "SINCRONIZADO";
-                document.getElementById('led-bulb').className = "w-2 h-2 rounded-full bg-green-500";
-                setTimeout(() => {
-                    document.getElementById('game-view').classList.add('hidden');
-                    document.getElementById('success-view').classList.remove('hidden');
-                }, 600);
+            // Verifica se todos os fluxos estão alinhados ao centro
+            const resolvido = [niveis.v1, niveis.v2, niveis.v3, niveis.v4].every(v => v >= 45 && v <= 55);
+            if (resolvido) {
+                document.getElementById('success-view').classList.remove('hidden');
             }
         }
 
-        function finalizar() {
-            // O segredo está aqui: puzzleId enviado para o index principal
+        function finalizarPuzzle() {
+            // Comunicação com o index.html:
+            // e.data.tipo deve ser 'puzzleResolvido'
+            // e.data.portal deve ser 'biodome' (conforme o puzzleId no teu index)
             window.parent.postMessage({ 
                 tipo: 'puzzleResolvido', 
-                puzzleId: 'biodome' 
+                portal: 'biodome' 
             }, '*');
         }
-        render();
     </script>
 </body>
 </html>
