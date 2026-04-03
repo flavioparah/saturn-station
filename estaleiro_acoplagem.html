@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TIMEWAYS — Acoplagem</title>
+    <style>
+        :root { --cyan:#22d3ee; --gold:#fbbf24; --red:#ef4444; --green:#22c55e; --bg:#010409; }
+        * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; margin:0; padding:0; }
+        body,html { width:100%; height:100%; overflow:hidden; background:var(--bg); font-family:'Orbitron',sans-serif; color:#fff; }
+        #stage { position:relative; width:100vw; height:100vh; background:#000; }
+        canvas { display:block; position:absolute; inset:0; z-index:5; }
+
+        /* HUD */
+        #hud { position:absolute; inset:0; z-index:100; pointer-events:none; }
+        #hud-header { position:absolute; top:24px; left:24px; border-left:3px solid var(--gold); padding-left:16px; }
+        .lbl { font-size:9px; text-transform:uppercase; letter-spacing:5px; color:var(--cyan); opacity:.7; }
+        .val { font-weight:900; font-size:18px; }
+        #hull-wrap { position:absolute; top:24px; right:24px; text-align:right; }
+        #hull-lbl  { font-size:9px; letter-spacing:3px; color:var(--cyan); opacity:.7; margin-bottom:5px; }
+        #hull-bg   { width:130px; height:8px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15); border-radius:2px; overflow:hidden; margin-left:auto; }
+        #hull-bar  { height:100%; width:100%; background:var(--green); transition:width .3s,background .3s; border-radius:2px; }
+        #hull-hits { font-size:10px; color:var(--gold); margin-top:4px; letter-spacing:2px; }
+        #status-msg { position:absolute; top:42%; left:50%; transform:translate(-50%,-50%); font-size:12px; letter-spacing:4px; color:var(--cyan); opacity:0; text-align:center; transition:opacity .4s; pointer-events:none; }
+        #status-msg.on { opacity:1; }
+        #vel-hud { position:absolute; bottom:210px; left:50%; transform:translateX(-50%); font-size:9px; letter-spacing:3px; color:var(--cyan); opacity:.45; white-space:nowrap; }
+
+        /* CONTROLES */
+        #controls { position:absolute; bottom:70px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:16px; pointer-events:auto; z-index:100; }
+        .nav-btn { width:70px; height:70px; background:rgba(15,23,42,.92); border:1px solid rgba(251,191,36,.35); border-radius:50%; color:var(--gold); display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; backdrop-filter:blur(10px); transition:all .15s; flex-shrink:0; }
+        .nav-btn.pressed { background:rgba(251,191,36,.22); box-shadow:0 0 16px rgba(251,191,36,.5); }
+        #btn-fwd { width:88px; height:88px; background:rgba(15,23,42,.92); border:1px solid rgba(34,211,238,.4); border-radius:50%; color:var(--cyan); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:900; letter-spacing:1px; text-align:center; line-height:1.4; cursor:pointer; backdrop-filter:blur(10px); transition:all .15s; flex-shrink:0; }
+        #btn-fwd.pressed { background:rgba(34,211,238,.18); box-shadow:0 0 16px rgba(34,211,238,.5); }
+        #btn-rev { width:70px; height:70px; background:rgba(15,23,42,.92); border:1px solid rgba(239,68,68,.35); border-radius:50%; color:var(--red); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:900; letter-spacing:1px; text-align:center; line-height:1.4; cursor:pointer; backdrop-filter:blur(10px); transition:all .15s; flex-shrink:0; }
+        #btn-rev.pressed { background:rgba(239,68,68,.18); box-shadow:0 0 16px rgba(239,68,68,.5); }
+
+        /* TELAS OVERLAY */
+        .overlay { position:absolute; inset:0; z-index:300; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(1,4,9,.96); opacity:0; pointer-events:none; transition:opacity .7s; }
+        .overlay.on { opacity:1; pointer-events:auto; }
+        .ov-title { font-size:22px; font-weight:900; letter-spacing:6px; margin-bottom:10px; }
+        .ov-sub   { font-size:10px; letter-spacing:2px; color:#94a3b8; margin-bottom:32px; text-align:center; max-width:300px; line-height:2.1; }
+        .ov-sep   { width:60px; height:1px; background:rgba(255,255,255,.15); margin-bottom:28px; }
+        .ctrl-legend { display:flex; flex-direction:column; gap:10px; margin-bottom:34px; }
+        .ctrl-row    { display:flex; align-items:center; gap:12px; font-size:9px; letter-spacing:2px; color:#94a3b8; }
+        .ctrl-key    { min-width:46px; height:28px; border:1px solid rgba(251,191,36,.4); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--gold); }
+        .ov-btn { padding:14px 38px; border:none; border-radius:3px; font-family:'Orbitron',sans-serif; font-size:11px; font-weight:900; letter-spacing:3px; cursor:pointer; transition:all .2s; }
+        .ov-btn:active { transform:scale(.95); }
+        .btn-start   { background:var(--cyan); color:#000; box-shadow:0 0 18px rgba(34,211,238,.4); }
+        .btn-restart { background:var(--red);  color:#000; box-shadow:0 0 18px rgba(239,68,68,.4); }
+        .btn-next    { background:var(--gold); color:#000; box-shadow:0 0 18px rgba(251,191,36,.4); }
+        #intro-screen .ov-title { color:var(--cyan); }
+        #fail-screen  .ov-title { color:var(--red); }
+        #win-screen   .ov-title { color:var(--gold); }
+        #audio-hint { position:absolute; top:16px; right:16px; font-size:8px; color:var(--cyan); opacity:.35; z-index:400; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="stage">
+    <div id="audio-hint">TOQUE PARA ATIVAR ÁUDIO</div>
+    <canvas id="game"></canvas>
+
+    <div id="hud" style="display:none">
+        <div id="hud-header"><div class="lbl">MISSÃO</div><div class="val">ACOPLAGEM</div></div>
+        <div id="hull-wrap">
+            <div id="hull-lbl">INTEGRIDADE</div>
+            <div id="hull-bg"><div id="hull-bar"></div></div>
+            <div id="hull-hits">COLISÕES: <span id="hit-n">0</span>/5</div>
+        </div>
+        <div id="status-msg"></div>
+        <div id="vel-hud">VEL ▸ 0.00 | DIST ▸ --</div>
+    </div>
+
+    <div id="controls" style="display:none">
+        <div id="btn-left"  class="nav-btn">◀</div>
+        <div id="btn-fwd">▲<br>AVANÇAR</div>
+        <div id="btn-rev">▼<br>RÉ</div>
+        <div id="btn-right" class="nav-btn">▶</div>
+    </div>
+
+    <!-- INTRO -->
+    <div id="intro-screen" class="overlay on">
+        <div class="ov-title">ACOPLAGEM</div>
+        <div class="ov-sub">Pilota a nave até a escotilha da estação.<br>5 colisões com o casco e a nave explode.</div>
+        <div class="ov-sep"></div>
+        <div class="ctrl-legend">
+            <div class="ctrl-row"><div class="ctrl-key">◀ ▶</div><span>DERIVA LATERAL</span></div>
+            <div class="ctrl-row"><div class="ctrl-key">▲</div><span>AVANÇAR em direção à estação</span></div>
+            <div class="ctrl-row"><div class="ctrl-key">▼</div><span>RÉ — afastar</span></div>
+        </div>
+        <button class="ov-btn btn-start" onclick="startGame()">INICIAR MISSÃO</button>
+    </div>
+
+    <!-- FALHA -->
+    <div id="fail-screen" class="overlay">
+        <div class="ov-title">MISSÃO FALHOU</div>
+        <div class="ov-sub">O casco não resistiu às colisões.<br>A nave foi perdida.</div>
+        <div class="ov-sep"></div>
+        <button class="ov-btn btn-restart" onclick="restartGame()">TENTAR NOVAMENTE</button>
+    </div>
+
+    <!-- SUCESSO -->
+    <div id="win-screen" class="overlay">
+        <div class="ov-title">ACOPLAGEM CONCLUÍDA</div>
+        <div class="ov-sub">Escotilha pressurizada.<br>Acesso ao módulo liberado.</div>
+        <div class="ov-sep"></div>
+        <!--
+        ╔══════════════════════════════════════════════════════════════╗
+        ║  PRÓXIMA PÁGINA — COLE O CAMINHO DO ARQUIVO HTML AQUI       ║
+        ║                                                              ║
+        ║  Substitua  CAMINHO_DA_PROXIMA_PAGINA.html                  ║
+        ║  pelo caminho real do arquivo HTML da cena seguinte.        ║
+        ║  Exemplo: onclick="ir('pagina4.html')"                      ║
+        ╚══════════════════════════════════════════════════════════════╝
+        -->
+        <button class="ov-btn btn-next" onclick="ir('CAMINHO_DA_PROXIMA_PAGINA.html')">CONTINUAR</button>
+    </div>
+</div>
+
+<script>
+function ir(url) { window.location.href = url; }
+
+// ══ ÁUDIO ════════════════════════════════════════════════════════════
+class Sfx {
+    constructor(){ this.c=null; this.ok=false; this._lt=0; this._ambiGain=null; }
+
+    init(){
+        if(this.ok)return;
+        this.c=new(window.AudioContext||window.webkitAudioContext)();
+        this._master=this.c.createGain(); this._master.gain.value=1; this._master.connect(this.c.destination);
+
+        // ── Ambience: dois osciladores detuned criam batimento espacial ──
+        const makeAmb=(f,t,vol)=>{
+            const o=this.c.createOscillator(),g=this.c.createGain(),lp=this.c.createBiquadFilter();
+            o.type=t; o.frequency.value=f; lp.type='lowpass'; lp.frequency.value=120;
+            g.gain.value=vol; o.connect(lp); lp.connect(g); g.connect(this._master); o.start();
+        };
+        makeAmb(36,'sawtooth',.03);
+        makeAmb(37.3,'sine',.025);  // batimento lento ~1.3Hz → pulsação cósmica
+
+        // ── Drone de tensão (sobe à medida que a nave se aproxima) ──
+        this._droneOsc=this.c.createOscillator();
+        this._droneGain=this.c.createGain();
+        const droneFilter=this.c.createBiquadFilter();
+        this._droneOsc.type='triangle'; this._droneOsc.frequency.value=55;
+        droneFilter.type='bandpass'; droneFilter.frequency.value=220; droneFilter.Q.value=3;
+        this._droneGain.gain.value=0;
+        this._droneOsc.connect(droneFilter); droneFilter.connect(this._droneGain); this._droneGain.connect(this._master);
+        this._droneOsc.start();
+
+        this.ok=true;
+        document.getElementById('audio-hint').style.display='none';
+    }
+
+    // Atualiza o drone de proximidade (0=longe, 1=perto)
+    updateProximity(t){ // t = 0..1
+        if(!this.c)return;
+        this._droneGain.gain.setTargetAtTime(t*.18, this.c.currentTime, .2);
+        this._droneOsc.frequency.setTargetAtTime(55+t*80, this.c.currentTime, .3);
+    }
+
+    // ── Propulsor: ruído filtrado curto + click metálico ──
+    thruster(){
+        if(!this.c||time-this._lt<.09)return; this._lt=time;
+        // ruído branco filtrado (jato)
+        const len=this.c.sampleRate*.06;
+        const buf=this.c.createBuffer(1,len,this.c.sampleRate);
+        const d=buf.getChannelData(0);
+        for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,.8);
+        const src=this.c.createBufferSource(),bp=this.c.createBiquadFilter(),g=this.c.createGain();
+        src.buffer=buf; bp.type='bandpass'; bp.frequency.value=900; bp.Q.value=.8;
+        g.gain.setValueAtTime(.12,this.c.currentTime);
+        g.gain.exponentialRampToValueAtTime(.001,this.c.currentTime+.07);
+        src.connect(bp); bp.connect(g); g.connect(this._master); src.start();
+    }
+
+    // ── Ré: tom grave pulsado ──
+    reverse(){
+        if(!this.c||time-this._lt<.12)return; this._lt=time;
+        const o=this.c.createOscillator(),g=this.c.createGain();
+        o.type='square'; o.frequency.setValueAtTime(90,this.c.currentTime);
+        o.frequency.linearRampToValueAtTime(55,this.c.currentTime+.08);
+        g.gain.setValueAtTime(.07,this.c.currentTime);
+        g.gain.exponentialRampToValueAtTime(.001,this.c.currentTime+.1);
+        o.connect(g); g.connect(this._master); o.start(); o.stop(this.c.currentTime+.12);
+    }
+
+    // ── Colisão: impacto metálico grave + distorção ──
+    hit(){
+        if(!this.c)return;
+        const now=this.c.currentTime;
+        // Componente de impacto (sub-grave)
+        const o=this.c.createOscillator(),g=this.c.createGain();
+        o.type='sine'; o.frequency.setValueAtTime(120,now);
+        o.frequency.exponentialRampToValueAtTime(30,now+.3);
+        g.gain.setValueAtTime(.4,now); g.gain.exponentialRampToValueAtTime(.001,now+.35);
+        o.connect(g); g.connect(this._master); o.start(); o.stop(now+.4);
+        // Componente metálico (ruído + filtro alto)
+        const len=this.c.sampleRate*.25;
+        const buf=this.c.createBuffer(1,len,this.c.sampleRate);
+        const d=buf.getChannelData(0);
+        for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.5);
+        const src=this.c.createBufferSource(),hp=this.c.createBiquadFilter(),g2=this.c.createGain();
+        src.buffer=buf; hp.type='highpass'; hp.frequency.value=1800;
+        g2.gain.setValueAtTime(.15,now); g2.gain.exponentialRampToValueAtTime(.001,now+.25);
+        src.connect(hp); hp.connect(g2); g2.connect(this._master); src.start();
+    }
+
+    // ── Alerta de casco crítico: bip grave repetido ──
+    warnCritical(){
+        if(!this.c)return;
+        [0,.18,.36].forEach(delay=>{
+            const now=this.c.currentTime+delay;
+            const o=this.c.createOscillator(),g=this.c.createGain();
+            o.type='square'; o.frequency.value=220;
+            g.gain.setValueAtTime(.08,now); g.gain.exponentialRampToValueAtTime(.001,now+.12);
+            o.connect(g); g.connect(this._master); o.start(now); o.stop(now+.14);
+        });
+    }
+
+    // ── Sucesso: pressurização mecânica + acorde ascendente ──
+    success(){
+        if(!this.c)return;
+        const now=this.c.currentTime;
+        // Pressurização: ruído que sobe de nível (ar entrando)
+        const len=this.c.sampleRate*1.2;
+        const buf=this.c.createBuffer(1,len,this.c.sampleRate);
+        const d=buf.getChannelData(0);
+        for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*.5;
+        const src=this.c.createBufferSource(),lp=this.c.createBiquadFilter(),g=this.c.createGain();
+        src.buffer=buf; lp.type='lowpass'; lp.frequency.value=300;
+        g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(.12,now+.6);
+        g.gain.linearRampToValueAtTime(0,now+1.2);
+        src.connect(lp); lp.connect(g); g.connect(this._master); src.start(now);
+        // Clique mecânico de encaixe
+        const o2=this.c.createOscillator(),g2=this.c.createGain();
+        o2.type='square'; o2.frequency.value=440;
+        g2.gain.setValueAtTime(.15,now); g2.gain.exponentialRampToValueAtTime(.001,now+.05);
+        o2.connect(g2); g2.connect(this._master); o2.start(now); o2.stop(now+.06);
+        // Acorde ascendente
+        [330,440,550,660,880].forEach((f,i)=>{
+            const t=now+.3+i*.12;
+            const o=this.c.createOscillator(),g=this.c.createGain();
+            o.type='sine'; o.frequency.value=f;
+            g.gain.setValueAtTime(.09,t); g.gain.exponentialRampToValueAtTime(.001,t+.5);
+            o.connect(g); g.connect(this._master); o.start(t); o.stop(t+.55);
+        });
+    }
+
+    // ── Alerta de proximidade critica (anel): bip rapido agudo ──
+    proximityWarn(){
+        if(!this.c||time-this._lt<.28)return; this._lt=time;
+        const now=this.c.currentTime;
+        const o=this.c.createOscillator(),g=this.c.createGain();
+        o.type='square'; o.frequency.value=660;
+        g.gain.setValueAtTime(.045,now); g.gain.exponentialRampToValueAtTime(.001,now+.07);
+        o.connect(g); g.connect(this._master); o.start(now); o.stop(now+.08);
+    }
+
+    // ── Explosão: boom multicamada ──
+    boom(){
+        if(!this.c)return;
+        const now=this.c.currentTime;
+        // Sub-grave (corpo da explosão)
+        const o=this.c.createOscillator(),g=this.c.createGain();
+        o.type='sine'; o.frequency.setValueAtTime(60,now);
+        o.frequency.exponentialRampToValueAtTime(20,now+.8);
+        g.gain.setValueAtTime(.5,now); g.gain.exponentialRampToValueAtTime(.001,now+1);
+        o.connect(g); g.connect(this._master); o.start(now); o.stop(now+1.1);
+        // Ruído (textura da explosão)
+        const len=this.c.sampleRate*1.5;
+        const buf=this.c.createBuffer(1,len,this.c.sampleRate);
+        const d=buf.getChannelData(0);
+        for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.2);
+        const src=this.c.createBufferSource(),lp=this.c.createBiquadFilter(),g2=this.c.createGain();
+        src.buffer=buf; lp.type='lowpass'; lp.frequency.value=400;
+        g2.gain.setValueAtTime(.45,now); g2.gain.exponentialRampToValueAtTime(.001,now+1.5);
+        src.connect(lp); lp.connect(g2); g2.connect(this._master); src.start(now);
+        // Flash agudo (crack inicial)
+        const o2=this.c.createOscillator(),g3=this.c.createGain();
+        o2.type='sawtooth'; o2.frequency.setValueAtTime(800,now);
+        o2.frequency.exponentialRampToValueAtTime(100,now+.15);
+        g3.gain.setValueAtTime(.3,now); g3.gain.exponentialRampToValueAtTime(.001,now+.2);
+        o2.connect(g3); g3.connect(this._master); o2.start(now); o2.stop(now+.22);
+    }
+}
+const sfx=new Sfx();
+
+// ══ CANVAS ═══════════════════════════════════════════════════════════
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+let W,H,CX,CY,ringRadius,ringWidth;
+let stars=[],time=0;
+
+// ── ESTADO ──
+let phase='intro'; // intro | play | fail | win
+let stationRot=0;
+const ROT_SPEED=0.0009;
+
+let ship={x:0,y:0,vx:0,vy:0,angle:0,thrustFX:0};
+let exploding=false,explT=0,explParts=[];
+let hits=0,lastHitT=-99;
+
+// DOCK: escotilha no TOPO da estação (−π/2). A nave desce de cima para acoplar.
+const DOCK_ANGLE=Math.PI/12; // vão entre compressor O₂ (5π/3) e antena (π/2)
+let dockOpen=0,liftOpen=0;
+
+// inputs
+let iL=false,iR=false,iFwd=false,iRev=false;
+
+// física
+const T_FWD=.055,T_BACK=.038,T_SIDE=.028,DRAG=.983;
+
+// ══ RESIZE ═══════════════════════════════════════════════════════════
+function resize(){
+    W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight;
+    CX=W/2; CY=H/2;
+    ringRadius=Math.min(W,H)*.25; ringWidth=ringRadius*.65;
+    if(!stars.length)genStars();
+}
+function genStars(){
+    stars=[];
+    for(let i=0;i<280;i++)stars.push({x:(Math.random()-.5)*2200,y:(Math.random()-.5)*2200,s:Math.random()*1.5+.2,o:Math.random()});
+}
+function resetShip(){
+    // Nasce ACIMA da estação, bico virado para CIMA (de costas ao centro)
+    ship={x:CX, y:CY-(ringRadius+ringWidth/2+200), vx:0,vy:0, angle:0, thrustFX:0};
+    // angle=0 → bico aponta para a direita (a nave desce de costas, motor virado para cima)
+    // será corrigido a cada frame por updatePhysics: angle = atan2(-ny,-nx)
+}
+
+// ══ FLOW ═════════════════════════════════════════════════════════════
+function startGame(){
+    sfx.init(); phase='play';
+    hits=0; lastHitT=-99; exploding=false; explParts=[]; stationRot=0; dockOpen=0;
+    resize(); resetShip(); updateHullBar();
+    document.getElementById('intro-screen').classList.remove('on');
+    document.getElementById('hud').style.display='block';
+    document.getElementById('controls').style.display='flex';
+}
+function restartGame(){
+    sfx.init(); phase='play';
+    hits=0; lastHitT=-99; exploding=false; explParts=[]; stationRot=0; dockOpen=0;
+    resize(); resetShip(); updateHullBar();
+    document.getElementById('fail-screen').classList.remove('on');
+    document.getElementById('win-screen').classList.remove('on');
+}
+function triggerFail(){
+    phase='fail'; exploding=true; explT=0; sfx.boom();
+    explParts=[];
+    for(let i=0;i<65;i++){
+        const a=Math.random()*Math.PI*2,sp=1+Math.random()*4;
+        explParts.push({x:ship.x,y:ship.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,ml:.6+Math.random()*.8,sz:2+Math.random()*6,col:Math.random()<.5?'#fbbf24':'#ef4444'});
+    }
+    setTimeout(()=>document.getElementById('fail-screen').classList.add('on'),1900);
+}
+function triggerWin(){
+    phase='win'; ship.vx=0; ship.vy=0; sfx.success();
+    showMsg('ACOPLAGEM CONCLUÍDA ✓','#22c55e');
+    setTimeout(()=>document.getElementById('win-screen').classList.add('on'),1700);
+}
+
+// ══ HUD ══════════════════════════════════════════════════════════════
+function updateHullBar(){
+    const pct=Math.max(0,(5-hits)/5*100);
+    const b=document.getElementById('hull-bar');
+    b.style.width=pct+'%';
+    b.style.background=pct>60?'var(--green)':pct>30?'var(--gold)':'var(--red)';
+    document.getElementById('hit-n').textContent=hits;
+}
+let _mt=null;
+function showMsg(txt,col='#22d3ee'){
+    const el=document.getElementById('status-msg');
+    el.textContent=txt; el.style.color=col; el.classList.add('on');
+    clearTimeout(_mt); _mt=setTimeout(()=>el.classList.remove('on'),2400);
+}
+let sX=0,sY=0,sMag=0;
+function shake(m){sMag=m;}
+function doShake(){
+    if(sMag>.1){sX=(Math.random()-.5)*sMag*2;sY=(Math.random()-.5)*sMag*2;sMag*=.74;}
+    else{sX=0;sY=0;sMag=0;}
+}
+
+// ══ FÍSICA ═══════════════════════════════════════════════════════════
+function updatePhysics(){
+    if(phase!=='play')return;
+    const dx=CX-ship.x,dy=CY-ship.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const nx=dx/dist,ny=dy/dist;   // radial: aponta para dentro
+    const tx=-ny,ty=nx;             // tangente
+
+    if(iFwd){
+        ship.vx+=nx*T_FWD; ship.vy+=ny*T_FWD;
+        ship.thrustFX=1; sfx.thruster();
+    } else if(iRev){
+        ship.vx-=nx*T_BACK; ship.vy-=ny*T_BACK;
+        ship.thrustFX=-1; sfx.reverse();
+    } else { ship.thrustFX=0; }
+
+    if(iL&&!iFwd){ ship.vx+=tx*T_SIDE; ship.vy+=ty*T_SIDE; sfx.thruster(); }
+    if(iR&&!iFwd){ ship.vx-=tx*T_SIDE; ship.vy-=ty*T_SIDE; sfx.thruster(); }
+
+    // Nave SEMPRE de costas ao centro (bico vira para fora)
+    ship.angle=Math.atan2(-ny,-nx);
+
+    ship.vx*=DRAG; ship.vy*=DRAG;
+    ship.x+=ship.vx; ship.y+=ship.vy;
+}
+
+// ══ COLISÃO / ACOPLAGEM ══════════════════════════════════════════════
+function checkCollision(){
+    if(phase!=='play')return;
+    const outerR=ringRadius+ringWidth/2;
+    const shipR=28;
+
+    // Posição da escotilha no mundo
+    const da=stationRot+DOCK_ANGLE;
+    const dockX=CX+Math.cos(da)*(outerR+10);
+    const dockY=CY+Math.sin(da)*(outerR+10);
+    const ddx=ship.x-dockX,ddy=ship.y-dockY;
+    const dockDist=Math.sqrt(ddx*ddx+ddy*ddy);
+
+    // ── ACOPLAGEM: chegou perto com velocidade baixa ──────────────────
+    const spd2=ship.vx*ship.vx+ship.vy*ship.vy;
+    if(dockDist<38&&spd2<.06){ triggerWin(); return; }
+
+    // ── COLISÃO COM ANEL ──────────────────────────────────────────────
+    const dxC=ship.x-CX,dyC=ship.y-CY;
+    const distC=Math.sqrt(dxC*dxC+dyC*dyC);
+    const inRing=distC<outerR+shipR*.5&&distC>outerR-shipR;
+    if(!inRing)return;
+
+    // Zona segura: arco ±20° em torno da escotilha — NÃO dá dano
+    const shipAngW=Math.atan2(dyC,dxC);
+    let rel=((shipAngW-stationRot+Math.PI*3)%(Math.PI*2))-Math.PI;
+    let diff=((rel-DOCK_ANGLE+Math.PI*3)%(Math.PI*2))-Math.PI;
+    if(Math.abs(diff)<0.35)return; // zona segura da escotilha
+
+    // Colisão real
+    if(time-lastHitT>.75){
+        lastHitT=time; hits++;
+        sfx.hit(); shake(9); updateHullBar();
+        showMsg(`COLISÃO — CASCO: ${5-hits} RESTANTE${5-hits!==1?'S':''}`, '#ef4444');
+        if(hits>=3) sfx.warnCritical(); // alerta de casco crítico a partir do 3º hit
+        const rn=dxC/distC,rny=dyC/distC;
+        ship.vx=rn*1.6; ship.vy=rny*1.6;
+        if(hits>=5)triggerFail();
+    }
+}
+
+// ══ DESENHO: ESTRELAS ════════════════════════════════════════════════
+function drawStars(){
+    ctx.save(); ctx.translate(CX+sX,CY+sY); ctx.rotate(stationRot*.3);
+    stars.forEach(s=>{
+        const f=.7+Math.sin(time*3+s.x)*.3;
+        ctx.fillStyle=`rgba(255,255,255,${s.o*f})`;
+        ctx.beginPath(); ctx.arc(s.x,s.y,s.s,0,Math.PI*2); ctx.fill();
+    });
+    ctx.restore();
+}
+
+// ══ DESENHO: MÓDULOS ═════════════════════════════════════════════════
+// A dock_door fica no vão entre o compressor de O₂ e a antena (DOCK_ANGLE = π/12)
+const modules=[
+    {angle:DOCK_ANGLE,   type:'dock_door',    color:'#fbbf24'},  // escotilha — vão entre tank e antenna
+    {angle:Math.PI/4,    type:'rect_door',    color:'#fbbf24'},
+    {angle:Math.PI/2,    type:'antenna',      color:'#22d3ee'},
+    {angle:(Math.PI/3)*2,type:'cargo',        color:'#94a3b8'},
+    {angle:Math.PI,      type:'sensor',       color:'#ef4444'},
+    {angle:(Math.PI/3)*4,type:'coil',         color:'#22d3ee'},
+    {angle:(Math.PI/3)*5,type:'tank',         color:'#22d3ee'},
+];
+
+function drawModule(m){
+    ctx.save(); ctx.rotate(m.angle);
+    const outer=ringRadius+ringWidth/2;
+    const inner=ringRadius-ringWidth/2;
+    ctx.lineWidth=2; ctx.strokeStyle=m.color;
+
+    if(m.type==='dock_door'){
+        ctx.fillStyle='#1e293b'; ctx.fillRect(outer-8,-45,20,90);
+        ctx.strokeStyle='#475569'; ctx.strokeRect(outer-8,-45,20,90);
+
+        // Porta FECHADA por defeito, abre só no sucesso
+        if(phase==='win') dockOpen=Math.min(1,dockOpen+.05);
+        else              dockOpen=Math.max(0,dockOpen-.05);
+        const off=dockOpen*35;
+        ctx.fillStyle='#fbbf24';
+        ctx.fillRect(outer-5,-40-off,15,40);
+        ctx.fillRect(outer-5,   0+off,15,40);
+        ctx.strokeStyle='#000'; ctx.lineWidth=3;
+        for(let i=0;i<4;i++){
+            ctx.beginPath();ctx.moveTo(outer-5,-35-off+i*8);ctx.lineTo(outer+10,-30-off+i*8);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(outer-5,  5+off+i*8);ctx.lineTo(outer+10, 10+off+i*8);ctx.stroke();
+        }
+        // Luz: vermelha=fechada, verde=aberta
+        ctx.fillStyle=phase==='win'?'#22c55e':'#ef4444';
+        ctx.beginPath();ctx.arc(outer+12,-40,3,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(outer+12, 40,3,0,Math.PI*2);ctx.fill();
+
+        // Triângulo guia (pisca) — só durante o jogo
+        if(phase==='play'){
+            const p=Math.sin(time*4)*.5+.5;
+            ctx.save();
+            ctx.globalAlpha=.35+p*.55; ctx.fillStyle='#22d3ee';
+            ctx.beginPath();
+            ctx.moveTo(outer+72,0);ctx.lineTo(outer+52,-11);ctx.lineTo(outer+52,11);
+            ctx.closePath(); ctx.fill();
+            ctx.globalAlpha=1; ctx.restore();
+        }
+
+    } else if(m.type==='rect_door'){
+        ctx.fillStyle='#020617';ctx.fillRect(inner+5,-20,35,40);
+        liftOpen=Math.max(0,liftOpen-.03);
+        const lo=liftOpen*38;
+        ctx.save();ctx.beginPath();ctx.rect(inner+5,-60,35,80);ctx.clip();
+        ctx.fillStyle='rgba(30,41,59,1)';ctx.strokeStyle=m.color;ctx.lineWidth=2;
+        ctx.fillRect(inner+5,-20-lo,35,40);ctx.strokeRect(inner+5,-20-lo,35,40);
+        ctx.strokeStyle='rgba(255,255,255,0.1)';
+        for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(inner+10,-20-lo+i*10);ctx.lineTo(inner+35,-20-lo+i*10);ctx.stroke();}
+        ctx.fillStyle='#fbbf24';ctx.fillRect(inner+30,-5-lo,6,10);
+        ctx.restore();
+        ctx.strokeStyle='#475569';ctx.lineWidth=3;ctx.strokeRect(inner+5,-20,35,40);
+
+    } else if(m.type==='antenna'){
+        const p=.5+Math.sin(time*3)*.5;
+        ctx.strokeStyle='#475569';ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(outer,-15);ctx.lineTo(outer+25,-10);ctx.lineTo(outer+25,10);ctx.lineTo(outer,15);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(outer,0);ctx.lineTo(outer+25,0);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(outer+12,-12);ctx.lineTo(outer+12,12);ctx.stroke();
+        ctx.save();ctx.translate(outer+45,0);
+        ctx.strokeStyle=m.color;ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(-15,0,35,-Math.PI/3,Math.PI/3);ctx.stroke();
+        for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(-15,0);const a=i*.4;ctx.lineTo(-15+Math.cos(a)*35,Math.sin(a)*35);ctx.stroke();}
+        ctx.strokeStyle='#94a3b8';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(15,0);ctx.stroke();
+        ctx.fillStyle=m.color;ctx.fillRect(15,-6,4,12);
+        ctx.strokeStyle=m.color;ctx.globalAlpha=1-p;
+        ctx.beginPath();ctx.arc(25+p*20,0,5+p*15,-.5,.5);ctx.stroke();
+        ctx.beginPath();ctx.arc(35+p*20,0,10+p*20,-.6,.6);ctx.stroke();
+        ctx.globalAlpha=1;ctx.restore();
+
+    } else if(m.type==='cargo'){
+        ctx.fillStyle='rgba(148,163,184,0.3)';ctx.fillRect(outer+5,-25,35,50);ctx.strokeRect(outer+5,-25,35,50);
+        ctx.beginPath();ctx.moveTo(outer+5,-5);ctx.lineTo(outer+40,-5);ctx.stroke();
+        ctx.fillStyle=m.color;ctx.fillRect(outer+10,-20,10,10);
+
+    } else if(m.type==='sensor'){
+        const sc='#ef4444',bp=.5+Math.sin(time*5)*.5;
+        ctx.fillStyle='#1e293b';ctx.fillRect(outer,-20,15,40);ctx.strokeStyle='#475569';ctx.strokeRect(outer,-20,15,40);
+        ctx.lineWidth=4;ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(outer+15,0);ctx.lineTo(outer+35,0);ctx.stroke();
+        ctx.save();ctx.translate(outer+45,0);ctx.rotate(time*2);
+        ctx.fillStyle='#334155';ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2,true);ctx.stroke();
+        ctx.strokeStyle=sc;ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,12,-1,1);ctx.stroke();
+        ctx.beginPath();ctx.arc(0,0,6,-1,1);ctx.stroke();
+        ctx.fillStyle=sc;ctx.globalAlpha=bp;ctx.beginPath();ctx.arc(14,0,4,0,Math.PI*2);ctx.fill();ctx.restore();
+        ctx.fillStyle='#0f172a';ctx.fillRect(outer+5,-30,8,10);ctx.fillRect(outer+5,20,8,10);
+        ctx.fillStyle=sc;ctx.globalAlpha=.4+bp*.6;
+        ctx.beginPath();ctx.arc(outer+9,-25,2,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(outer+9, 25,2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+    } else if(m.type==='coil'){
+        const ec='#22d3ee',p=.5+Math.sin(time*8)*.5;
+        ctx.fillStyle='#0f172a';ctx.fillRect(outer,-30,12,60);ctx.strokeRect(outer,-30,12,60);
+        const pg=ctx.createLinearGradient(outer+12,0,outer+50,0);
+        pg.addColorStop(0,ec);pg.addColorStop(.5,'#fff');pg.addColorStop(1,ec);
+        ctx.fillStyle=pg;ctx.globalAlpha=.2+p*.3;ctx.fillRect(outer+12,-8,45,16);ctx.globalAlpha=1;
+        ctx.lineWidth=3;ctx.strokeStyle='#94a3b8';
+        for(let i=0;i<3;i++){const xp=outer+18+i*12;ctx.strokeRect(xp,-22,6,44);}
+        ctx.fillStyle='#334155';ctx.beginPath();ctx.arc(outer+55,0,8,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.fillStyle=ec;ctx.beginPath();ctx.arc(outer+55,0,3+p*2,0,Math.PI*2);ctx.fill();
+
+    } else if(m.type==='tank'){
+        const oc='#22d3ee',p=.5+Math.sin(time*4)*.5;
+        ctx.fillStyle='#1e293b';ctx.fillRect(outer,-25,10,50);ctx.strokeRect(outer,-25,10,50);
+        const dt=y=>{
+            ctx.fillStyle='#475569';ctx.beginPath();ctx.roundRect(outer+10,y-16,40,32,6);ctx.fill();ctx.stroke();
+            ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;
+            ctx.beginPath();ctx.moveTo(outer+15,y-10);ctx.lineTo(outer+45,y-10);ctx.stroke();
+            ctx.fillStyle='#0f172a';ctx.fillRect(outer+18,y+4,25,4);
+            ctx.fillStyle=oc;ctx.globalAlpha=.6+p*.4;ctx.fillRect(outer+18,y+4,18,4);ctx.globalAlpha=1;
+        };
+        dt(-18);dt(18);
+        ctx.strokeStyle='#94a3b8';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(outer+30,-5);ctx.lineTo(outer+30,5);ctx.stroke();
+        ctx.save();ctx.translate(outer+58,0);
+        ctx.fillStyle='#334155';ctx.beginPath();ctx.arc(0,0,10,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,8,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#ef4444';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(6,0);ctx.stroke();
+        ctx.restore();
+    }
+    ctx.restore();
+}
+
+// ══ DESENHO: NAVE ════════════════════════════════════════════════════
+function drawShip(){
+    if(exploding)return;
+    ctx.save();
+    ctx.translate(ship.x+sX,ship.y+sY);
+    ctx.rotate(ship.angle);  // sempre de costas ao centro
+
+    const pulse=.5+Math.sin(time*3)*.5;
+    ctx.fillStyle='#fbbf24';ctx.strokeStyle='#b45309';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.moveTo(0,-20);ctx.bezierCurveTo(40,-25,60,-15,75,0);
+    ctx.bezierCurveTo(60,15,40,25,0,20);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle='#22d3ee';ctx.beginPath();ctx.ellipse(45,0,12,8,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fbbf24';
+    ctx.beginPath();ctx.arc(15,-18,10,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.arc(15, 18,10,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#1e293b';
+    ctx.beginPath();ctx.arc(15,-18,4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(15, 18,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=`rgba(34,211,238,${.3*pulse})`;
+    ctx.beginPath();ctx.arc(15,-18,6*pulse,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(15, 18,6*pulse,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#d97706';
+    ctx.beginPath();ctx.moveTo(5,-12);ctx.lineTo(-8,-22);ctx.lineTo(8,-18);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(5, 12);ctx.lineTo(-8, 22);ctx.lineTo(8, 18);ctx.closePath();ctx.fill();
+
+    // Chamas propulsoras (saem da traseira = lado esquerdo da nave que aponta para a estação)
+    if(ship.thrustFX!==0){
+        const fwd=ship.thrustFX>0;
+        const col=fwd?'#22d3ee':'#ef4444';
+        const len=(fwd?36:16)*(.6+Math.sin(time*30)*.4);
+        ctx.save();ctx.globalAlpha=.65;ctx.fillStyle=col;
+        ctx.beginPath();ctx.moveTo(-2,-12);ctx.lineTo(-2-len,-16);ctx.lineTo(-2-len,-8);ctx.closePath();ctx.fill();
+        ctx.beginPath();ctx.moveTo(-2, 12);ctx.lineTo(-2-len, 16);ctx.lineTo(-2-len,  8);ctx.closePath();ctx.fill();
+        ctx.globalAlpha=1;ctx.restore();
+    }
+    ctx.restore();
+}
+
+// ══ DESENHO: EXPLOSÃO ════════════════════════════════════════════════
+function drawExplosion(){
+    if(!exploding)return;
+    explT+=.016;
+    explParts.forEach(p=>{
+        p.x+=p.vx;p.y+=p.vy;p.vx*=.96;p.vy*=.96;
+        p.life-=.016/p.ml;if(p.life<0)p.life=0;
+        ctx.save();ctx.globalAlpha=p.life;ctx.fillStyle=p.col;
+        ctx.beginPath();ctx.arc(p.x+sX,p.y+sY,p.sz*p.life,0,Math.PI*2);ctx.fill();ctx.restore();
+    });
+    if(explT<.28){
+        ctx.save();ctx.globalAlpha=(.28-explT)/.28*.7;
+        const g=ctx.createRadialGradient(ship.x,ship.y,0,ship.x,ship.y,80*(1+explT*3));
+        g.addColorStop(0,'#fff');g.addColorStop(.3,'#fbbf24');g.addColorStop(1,'transparent');
+        ctx.fillStyle=g;ctx.beginPath();ctx.arc(ship.x,ship.y,80*(1+explT*3),0,Math.PI*2);ctx.fill();ctx.restore();
+    }
+}
+
+// ══ DESENHO: INDICADOR ═══════════════════════════════════════════════
+function drawTarget(){
+    if(phase!=='play')return;
+    const da=stationRot+DOCK_ANGLE;
+    const outerR=ringRadius+ringWidth/2;
+    const dockX=CX+Math.cos(da)*(outerR+50);
+    const dockY=CY+Math.sin(da)*(outerR+50);
+    const dx=dockX-ship.x,dy=dockY-ship.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const vel=Math.sqrt(ship.vx*ship.vx+ship.vy*ship.vy);
+    document.getElementById('vel-hud').textContent=`VEL ▸ ${vel.toFixed(2)} | DIST ▸ ${Math.round(dist)}m`;
+    if(dist>100){
+        const ang=Math.atan2(dy,dx);
+        const ax=ship.x+Math.cos(ang)*65,ay=ship.y+Math.sin(ang)*65;
+        const p=.5+Math.sin(time*5)*.5;
+        ctx.save();ctx.translate(ax+sX,ay+sY);ctx.rotate(ang);
+        ctx.globalAlpha=.4+p*.5;ctx.fillStyle='#22d3ee';
+        ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(-6,-7);ctx.lineTo(-6,7);ctx.closePath();ctx.fill();
+        ctx.globalAlpha=1;ctx.restore();
+    }
+}
+
+// ══ LOOP ═════════════════════════════════════════════════════════════
+function loop(){
+    resize(); time+=.016; doShake();
+    if(phase==='play'){
+        stationRot+=ROT_SPEED; updatePhysics(); checkCollision();
+        // Drone de proximidade: sobe quando a nave se aproxima da escotilha
+        const da=stationRot+DOCK_ANGLE, outerR=ringRadius+ringWidth/2;
+        const dkX=CX+Math.cos(da)*(outerR+10), dkY=CY+Math.sin(da)*(outerR+10);
+        const dkDist=Math.sqrt((ship.x-dkX)**2+(ship.y-dkY)**2);
+        sfx.updateProximity(Math.max(0,1-dkDist/250));
+
+        // ── Aviso sonoro de perigo: nave muito proxima do anel (mas nao na escotilha) ──
+        const dxC=ship.x-CX,dyC=ship.y-CY;
+        const distC=Math.sqrt(dxC*dxC+dyC*dyC);
+        if(distC<outerR+60&&distC>outerR-40&&dkDist>80){ sfx.proximityWarn(); }
+
+    } else if(phase==='win'){ stationRot+=ROT_SPEED*.25; sfx.updateProximity(0); }
+    else { sfx.updateProximity(0); }
+
+    ctx.clearRect(0,0,W,H);
+    drawStars();
+
+    ctx.save();
+    ctx.translate(CX+sX,CY+sY);ctx.rotate(stationRot);
+    const rI=ringRadius-ringWidth/2,rO=ringRadius+ringWidth/2;
+    const rg=ctx.createRadialGradient(0,0,rI,0,0,rO);
+    rg.addColorStop(0,'#080c14');rg.addColorStop(.3,'#1e293b');rg.addColorStop(.7,'#1e293b');rg.addColorStop(1,'#080c14');
+    ctx.beginPath();ctx.arc(0,0,rO,0,Math.PI*2,false);ctx.arc(0,0,rI,0,Math.PI*2,true);ctx.fillStyle=rg;ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1.5;
+    for(let i=0;i<32;i++){ctx.save();ctx.rotate(i*Math.PI/16);ctx.beginPath();ctx.moveTo(rI,0);ctx.lineTo(rO,0);ctx.stroke();ctx.restore();}
+    ctx.lineWidth=3;ctx.strokeStyle='rgba(34,211,238,0.4)';ctx.beginPath();ctx.arc(0,0,rO,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='rgba(251,191,36,0.2)';ctx.beginPath();ctx.arc(0,0,rI,0,Math.PI*2);ctx.stroke();
+    modules.forEach(m=>drawModule(m));
+    ctx.restore();
+
+    drawShip();
+    drawExplosion();
+    drawTarget();
+    requestAnimationFrame(loop);
+}
+
+// ══ CONTROLES ════════════════════════════════════════════════════════
+function mkBtn(id,onP,onR){
+    const el=document.getElementById(id);
+    const p=e=>{e.preventDefault();sfx.init();onP();el.classList.add('pressed');};
+    const r=()=>{onR();el.classList.remove('pressed');};
+    el.addEventListener('mousedown',p);el.addEventListener('touchstart',p,{passive:false});
+    window.addEventListener('mouseup',r);window.addEventListener('touchend',r);
+}
+mkBtn('btn-left',  ()=>iL=true,   ()=>iL=false);
+mkBtn('btn-right', ()=>iR=true,   ()=>iR=false);
+mkBtn('btn-fwd',   ()=>iFwd=true, ()=>iFwd=false);
+mkBtn('btn-rev',   ()=>iRev=true, ()=>iRev=false);
+
+window.addEventListener('keydown',e=>{
+    sfx.init();
+    if(e.key==='ArrowLeft' ||e.key==='a')iL=true;
+    if(e.key==='ArrowRight'||e.key==='d')iR=true;
+    if(e.key==='ArrowUp'   ||e.key==='w'||e.key===' ')iFwd=true;
+    if(e.key==='ArrowDown' ||e.key==='s')iRev=true;
+    if(e.key==='Enter'&&phase==='intro')startGame();
+});
+window.addEventListener('keyup',e=>{
+    if(e.key==='ArrowLeft' ||e.key==='a')iL=false;
+    if(e.key==='ArrowRight'||e.key==='d')iR=false;
+    if(e.key==='ArrowUp'   ||e.key==='w'||e.key===' ')iFwd=false;
+    if(e.key==='ArrowDown' ||e.key==='s')iRev=false;
+});
+window.addEventListener('click',()=>sfx.init());
+window.onload=()=>{resize();loop();};
+</script>
+</body>
+</html>
