@@ -51,7 +51,6 @@
         .label { font-size: 10px; text-transform: uppercase; letter-spacing: 3px; opacity: 0.6; font-weight: 400; }
         .value { font-weight: 900; font-size: 18px; color: var(--neon); letter-spacing: 2px; }
 
-        /* MOOD LOG - diário do John no canto */
         #mood-log {
             position: absolute;
             top: 50px; right: 30px;
@@ -135,9 +134,8 @@
             transform: scale(0); opacity: 0;
             line-height: 1.2; text-align: center; flex-shrink: 0;
         }
-        #action-btn.active { transform: scale(1); opacity: 1; }
+        #action-btn.active { transform: scale(1); opacity: 1; pointer-events: auto; }
 
-        /* MENSAGEM ATMOSFÉRICA flutuante */
         #atm-msg {
             position: absolute;
             bottom: 30px; left: 50%;
@@ -160,6 +158,52 @@
         #audio-hint {
             position: absolute; top: 20px; right: 20px;
             font-size: 9px; color: var(--neon); opacity: 0.4; z-index: 200;
+        }
+
+        /* ========================================================
+           💡 CSS DO MODAL
+           Estilos para o painel flutuante que abrirá com o seu HTML
+           ======================================================== */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(1, 2, 5, 0.85); backdrop-filter: blur(8px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 999; /* Fica acima de tudo */
+            opacity: 0; pointer-events: none; /* Escondido por padrão */
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1; pointer-events: auto; /* Mostra o modal */
+        }
+
+        .modal-box {
+            width: 85%; max-width: 800px; height: 80%;
+            background: rgba(10, 20, 14, 0.95);
+            border: 1px solid var(--neon);
+            box-shadow: 0 0 40px rgba(74, 222, 128, 0.15);
+            border-radius: 8px; display: flex; flex-direction: column;
+            position: relative; padding: 20px;
+        }
+
+        #close-modal {
+            position: absolute; top: 15px; right: 15px;
+            background: none; border: none; color: var(--neon);
+            font-size: 24px; cursor: pointer; transition: 0.2s;
+            z-index: 10;
+        }
+        #close-modal:hover { color: #fff; text-shadow: 0 0 10px var(--neon); }
+
+        #modal-title-ui {
+            font-size: 18px; color: var(--neon); letter-spacing: 3px;
+            margin-bottom: 15px; border-bottom: 1px solid rgba(74, 222, 128, 0.3);
+            padding-bottom: 10px; font-weight: 900;
+        }
+
+        /* O iframe é a "janela" que carrega o seu HTML externo */
+        #modal-iframe {
+            width: 100%; height: 100%; border: none; flex-grow: 1;
+            background: #000; border-radius: 4px;
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
@@ -197,8 +241,16 @@
     <div id="atm-msg">SEM SINAL DE TRIPULAÇÃO ATIVA</div>
 </div>
 
+<div id="action-modal" class="modal-overlay">
+    <div class="modal-box">
+        <button id="close-modal">✕</button>
+        <div id="modal-title-ui">INFO</div>
+        <iframe id="modal-iframe" src=""></iframe>
+    </div>
+</div>
+
 <script>
-// ─── ÁUDIO PROCEDURAL ────────────────────────────────────────────────────────
+// ─── ÁUDIO PROCEDURAL (Mantido igual) ────────────────────────────────────────
 class HabitatAudio {
     constructor() {
         this.ctx = null;
@@ -218,7 +270,6 @@ class HabitatAudio {
     }
 
     _setupVentilacao() {
-        // Hum de ventilação — ruído branco filtrado, contínuo e suave
         const bufferSize = 3 * this.ctx.sampleRate;
         const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = noiseBuffer.getChannelData(0);
@@ -240,40 +291,28 @@ class HabitatAudio {
         this.ventGain = this.ctx.createGain();
         this.ventGain.gain.value = 0.035;
 
-        noise.connect(filter1);
-        filter1.connect(filter2);
-        filter2.connect(this.ventGain);
-        this.ventGain.connect(this.ctx.destination);
+        noise.connect(filter1); filter1.connect(filter2);
+        filter2.connect(this.ventGain); this.ventGain.connect(this.ctx.destination);
         noise.start();
 
-        // LFO para pulsar levemente — sensação de respiração
         const lfo = this.ctx.createOscillator();
         const lfoG = this.ctx.createGain();
-        lfo.frequency.value = 0.08;
-        lfoG.gain.value = 0.015;
-        lfo.connect(lfoG);
-        lfoG.connect(this.ventGain.gain);
-        lfo.start();
+        lfo.frequency.value = 0.08; lfoG.gain.value = 0.015;
+        lfo.connect(lfoG); lfoG.connect(this.ventGain.gain); lfo.start();
     }
 
     _setupEco() {
-        // Sub-drone: solidão
         const osc = this.ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(55, this.ctx.currentTime);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(55, this.ctx.currentTime);
 
         const lfo2 = this.ctx.createOscillator();
         const lfo2G = this.ctx.createGain();
-        lfo2.frequency.value = 0.04;
-        lfo2G.gain.value = 1.5;
-        lfo2.connect(lfo2G);
-        lfo2G.connect(osc.frequency);
-        lfo2.start();
+        lfo2.frequency.value = 0.04; lfo2G.gain.value = 1.5;
+        lfo2.connect(lfo2G); lfo2G.connect(osc.frequency); lfo2.start();
 
         this.echoGain = this.ctx.createGain();
         this.echoGain.gain.value = 0.018;
-        osc.connect(this.echoGain);
-        this.echoGain.connect(this.ctx.destination);
+        osc.connect(this.echoGain); this.echoGain.connect(this.ctx.destination);
         osc.start();
     }
 
@@ -282,11 +321,9 @@ class HabitatAudio {
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const g = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(520, t);
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(520, t);
         osc.frequency.exponentialRampToValueAtTime(280, t + 0.18);
-        g.gain.setValueAtTime(0.07, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+        g.gain.setValueAtTime(0.07, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
         osc.connect(g); g.connect(this.ctx.destination);
         osc.start(); osc.stop(t + 0.25);
     }
@@ -296,11 +333,9 @@ class HabitatAudio {
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const g = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(80, t);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(80, t);
         osc.frequency.exponentialRampToValueAtTime(20, t + 0.08);
-        g.gain.setValueAtTime(0.06, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        g.gain.setValueAtTime(0.06, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
         osc.connect(g); g.connect(this.ctx.destination);
         osc.start(); osc.stop(t + 0.12);
     }
@@ -310,17 +345,14 @@ class HabitatAudio {
         const t = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const g = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(200 + Math.random() * 30, t);
-        g.gain.setValueAtTime(0.04, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(200 + Math.random() * 30, t);
+        g.gain.setValueAtTime(0.04, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
         osc.connect(g); g.connect(this.ctx.destination);
         osc.start(); osc.stop(t + 0.1);
     }
 
     updateProximity(moduleType, dist) {
         if (!this.initialized) return;
-        // Quanto mais perto de um módulo, mais o vent "respira"
         const vol = 0.035 + dist * 0.04;
         this.ventGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.3);
     }
@@ -337,7 +369,7 @@ const mDesc = document.getElementById('m-desc');
 const actBtn = document.getElementById('action-btn');
 
 let w, h, cx, cy, ringRadius, ringWidth;
-let playerAngle = (Math.PI / 3) * 5; // ✏️ EDITADO: astronauta começa em cima da porta de saída
+let playerAngle = (Math.PI / 3) * 5; 
 let stationRot = 0;
 let playerVel = 0;
 let input = 0;
@@ -346,8 +378,10 @@ let stars = [];
 let lastStep = 0;
 let currentActiveModule = null;
 
-// ─── MÓDULOS DO HABITAT ───────────────────────────────────────────────────────
-// Cada módulo tem tipo visual e atmosfera narrativa
+// ============================================================================
+// 💡 CONFIGURAÇÃO DOS MÓDULOS E CAMINHOS
+// É aqui que você edita o que acontece quando clica em cada área!
+// ============================================================================
 const modules = [
     {
         angle: 0,
@@ -355,7 +389,11 @@ const modules = [
         desc: "Camas vazias. Cobertores dobrados com precisão militar. Ninguém dormiu aqui desde o evento.",
         color: "#4ade80",
         type: "bunks",
-        link: null
+        link: null, // Deixe null se não for redirecionar a página inteira
+        
+        // 💡 PARA ABRIR UM ARQUIVO HTML NO MODAL (POP-UP):
+        // Coloque o nome do seu arquivo HTML aqui. Exemplo: "arq_beliches.html"
+        modalUrl: "seu_arquivo_beliches.html" 
     },
     {
         angle: Math.PI / 3,
@@ -363,7 +401,10 @@ const modules = [
         desc: "Sua cama. Um diário debaixo do travesseiro. A foto da família ainda colada na parede.",
         color: "#fbbf24",
         type: "john_bunk",
-        link: null
+        link: null,
+        
+        // 💡 Exemplo para o diário do John:
+        modalUrl: "diario_john.html" 
     },
     {
         angle: (Math.PI / 3) * 2,
@@ -371,7 +412,8 @@ const modules = [
         desc: "Mesa de refeições para 12. Hoje só há uma bandeja. O café ainda está quente.",
         color: "#7dd3fc",
         type: "lounge",
-        link: null
+        link: null,
+        modalUrl: "area_convivio.html"
     },
     {
         angle: Math.PI,
@@ -379,7 +421,8 @@ const modules = [
         desc: "Mensagens não lidas: 0. Última conexão com Terra: 72h atrás. Sinal: PERDIDO.",
         color: "#f87171",
         type: "terminal",
-        link: null
+        link: null,
+        modalUrl: "terminal_mensagens.html"
     },
     {
         angle: (Math.PI / 3) * 4,
@@ -387,7 +430,8 @@ const modules = [
         desc: "11 armários trancados. Pertences da tripulação intactos. Todos partiram sem avisar.",
         color: "#a78bfa",
         type: "lockers",
-        link: null
+        link: null,
+        modalUrl: "armarios.html"
     },
     {
         angle: (Math.PI / 3) * 5,
@@ -395,33 +439,35 @@ const modules = [
         desc: "Porta pressurizada de retorno à estação principal.",
         color: "#4ade80",
         type: "exit",
-        link: "a1-open-doors.html" // ✏️ EDITADO: ao entrar na porta, redireciona para a1-open-doors.html
+        
+        // 💡 PARA REDIRECIONAR A PÁGINA INTEIRA (SAIR PELA PORTA):
+        // Ao preencher 'link', o jogo não abre modal, ele muda de página.
+        // Cole o caminho do arquivo HTML da próxima sala aqui dentro das aspas:
+        link: "a1-open-doors.html", 
+        
+        modalUrl: null
     }
 ];
 
-// ─── PARTÍCULAS DE POEIRA ─────────────────────────────────────────────────────
+// ─── PARTÍCULAS E ESTRELAS (Mantido) ──────────────────────────────────────────
 const dustParticles = Array.from({ length: 40 }, () => ({
     angle: Math.random() * Math.PI * 2,
-    r: (Math.random() * 0.3 + 0.05),   // fração do anel
+    r: (Math.random() * 0.3 + 0.05),   
     speed: (Math.random() - 0.5) * 0.0003,
     size: Math.random() * 1.2 + 0.3,
     opacity: Math.random() * 0.3 + 0.05
 }));
 
-// ─── ESTRELAS ─────────────────────────────────────────────────────────────────
 function initStars() {
     stars = [];
     for (let i = 0; i < 250; i++) {
         stars.push({
-            x: (Math.random() - 0.5) * 2200,
-            y: (Math.random() - 0.5) * 2200,
-            s: Math.random() * 1.4 + 0.2,
-            o: Math.random() * 0.7 + 0.1
+            x: (Math.random() - 0.5) * 2200, y: (Math.random() - 0.5) * 2200,
+            s: Math.random() * 1.4 + 0.2, o: Math.random() * 0.7 + 0.1
         });
     }
 }
 
-// ─── RESIZE ───────────────────────────────────────────────────────────────────
 function resize() {
     w = canvas.width = window.innerWidth;
     h = canvas.height = window.innerHeight;
@@ -431,21 +477,15 @@ function resize() {
     if (stars.length === 0) initStars();
 }
 
-// ─── INPUT ────────────────────────────────────────────────────────────────────
+// ─── INPUT (Mantido) ──────────────────────────────────────────────────────────
 const setInput = (id, val) => {
     const el = document.getElementById(id);
-    const start = (e) => {
-        e.preventDefault();
-        sfx.init(); input = val; sfx.playNav();
-    };
+    const start = (e) => { e.preventDefault(); sfx.init(); input = val; sfx.playNav(); };
     const end = () => { if (input === val) input = 0; };
-    el.addEventListener('mousedown', start);
-    el.addEventListener('touchstart', start, { passive: false });
-    window.addEventListener('mouseup', end);
-    window.addEventListener('touchend', end);
+    el.addEventListener('mousedown', start); el.addEventListener('touchstart', start, { passive: false });
+    window.addEventListener('mouseup', end); window.addEventListener('touchend', end);
 };
-setInput('btn-left', 0.0012);
-setInput('btn-right', -0.0012);
+setInput('btn-left', 0.0012); setInput('btn-right', -0.0012);
 
 window.addEventListener('keydown', (e) => {
     sfx.init();
@@ -461,564 +501,323 @@ window.addEventListener('keyup', (e) => {
 });
 window.addEventListener('click', () => sfx.init());
 
-// ─── AÇÃO ─────────────────────────────────────────────────────────────────────
+// ============================================================================
+// 💡 LÓGICA DE AÇÃO (MODAL E REDIRECIONAMENTO)
+// ============================================================================
+const modalOverlay = document.getElementById('action-modal');
+const modalIframe = document.getElementById('modal-iframe');
+const modalTitleUi = document.getElementById('modal-title-ui');
+
+// Fechar o modal
+document.getElementById('close-modal').addEventListener('click', () => {
+    modalOverlay.classList.remove('open');
+    modalIframe.src = ""; // Limpa o iframe para parar vídeos/sons do HTML interno
+    sfx.init(); sfx.playInteract();
+});
+
 function triggerAction() {
     if (!currentActiveModule) return;
     sfx.init(); sfx.playInteract();
+    
+    // 1. Se o módulo tiver um 'link' definido (Ex: A Porta) -> Redireciona
     if (currentActiveModule.link) {
         actBtn.style.transform = 'scale(0.92)';
         setTimeout(() => { window.location.href = currentActiveModule.link; }, 120);
+    } 
+    // 2. Se o módulo tiver um 'modalUrl' definido -> Abre o modal flutuante
+    else if (currentActiveModule.modalUrl) {
+        actBtn.style.transform = 'scale(0.92)';
+        setTimeout(() => { actBtn.style.transform = 'scale(1)'; }, 100);
+        
+        // Configura e abre o modal
+        modalTitleUi.innerText = currentActiveModule.name;
+        modalIframe.src = currentActiveModule.modalUrl;
+        modalOverlay.classList.add('open');
     }
 }
 actBtn.addEventListener('click', triggerAction);
 
-// ─── DESENHO: ASTRONAUTA ─────────────────────────────────────────────────────
+// ─── DESENHO: ASTRONAUTA E MÓDULOS (Mantidos iguais) ──────────────────────────
 function drawAstronaut(t, vel) {
     ctx.save();
     const moving = Math.abs(vel) > 0.0004;
     const animSpeed = 11;
     const walkPhase = moving ? Math.sin(t * animSpeed) : 0;
-    if (vel < -0.0001) ctx.scale(1, 1);
-    else if (vel > 0.0001) ctx.scale(-1, 1);
+    if (vel < -0.0001) ctx.scale(1, 1); else if (vel > 0.0001) ctx.scale(-1, 1);
 
     const s = ringRadius / 200;
-    ctx.scale(s, s);
-    // Desloca para baixo (+12) para que os pés fiquem dentro da linha do chão
-    ctx.translate(0, 12);
+    ctx.scale(s, s); ctx.translate(0, 12);
+    const white = '#ffffff'; const bodyGrey = '#cbd5e1'; const helmetDark = '#0f172a'; const green = '#4ade80';
 
-    const white = '#ffffff';
-    const bodyGrey = '#cbd5e1';
-    const helmetDark = '#0f172a';
-    const green = '#4ade80';
-
-    // Pernas
     ctx.save(); ctx.translate(-5.5, -2); ctx.rotate(moving ? walkPhase * 0.6 : 0);
-    ctx.fillStyle = bodyGrey; ctx.beginPath();
-    ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]); ctx.fill(); ctx.restore();
+    ctx.fillStyle = bodyGrey; ctx.beginPath(); ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]); ctx.fill(); ctx.restore();
 
     ctx.save(); ctx.translate(5.5, -2); ctx.rotate(moving ? -walkPhase * 0.6 : 0);
-    ctx.fillStyle = white; ctx.beginPath();
-    ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]); ctx.fill(); ctx.restore();
+    ctx.fillStyle = white; ctx.beginPath(); ctx.roundRect(-4.4, 0, 8.8, 17.6, [1, 1, 4, 4]); ctx.fill(); ctx.restore();
 
-    // Corpo + braços
-    ctx.save();
-    const bounce = moving ? Math.abs(Math.sin(t * animSpeed)) * 1.3 : 0;
-    ctx.translate(0, -bounce - 2);
+    ctx.save(); const bounce = moving ? Math.abs(Math.sin(t * animSpeed)) * 1.3 : 0; ctx.translate(0, -bounce - 2);
+    ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.roundRect(-14, -28, 10, 24, 4); ctx.fill();
+    ctx.fillStyle = white; ctx.beginPath(); ctx.roundRect(-12, -32, 24, 32, [8, 8, 4, 4]); ctx.fill();
 
-    ctx.fillStyle = '#334155'; ctx.beginPath();
-    ctx.roundRect(-14, -28, 10, 24, 4); ctx.fill();
-    ctx.fillStyle = white; ctx.beginPath();
-    ctx.roundRect(-12, -32, 24, 32, [8, 8, 4, 4]); ctx.fill();
-
-    ctx.fillStyle = green;
-    ctx.globalAlpha = 0.5 + Math.sin(t * 4) * 0.5;
-    ctx.fillRect(-5, -22, 10, 2);
-    ctx.globalAlpha = 1;
+    ctx.fillStyle = green; ctx.globalAlpha = 0.5 + Math.sin(t * 4) * 0.5; ctx.fillRect(-5, -22, 10, 2); ctx.globalAlpha = 1;
 
     ctx.save(); ctx.translate(-10, -25); ctx.rotate(moving ? -walkPhase * 0.8 : 0.2);
-    ctx.fillStyle = bodyGrey; ctx.beginPath();
-    ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill(); ctx.restore();
+    ctx.fillStyle = bodyGrey; ctx.beginPath(); ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill(); ctx.restore();
 
     ctx.save(); ctx.translate(10, -25); ctx.rotate(moving ? walkPhase * 0.8 : -0.2);
-    ctx.fillStyle = white; ctx.beginPath();
-    ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill(); ctx.restore();
+    ctx.fillStyle = white; ctx.beginPath(); ctx.roundRect(-3.3, 0, 6.6, 19.8, 4); ctx.fill(); ctx.restore();
 
-    // Capacete
     ctx.save(); ctx.translate(0, -38);
-    ctx.fillStyle = white; ctx.beginPath();
-    ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = helmetDark; ctx.beginPath();
-    ctx.ellipse(4, -1, 11, 8, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-
+    ctx.fillStyle = white; ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = helmetDark; ctx.beginPath(); ctx.ellipse(4, -1, 11, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     ctx.restore(); ctx.restore();
 }
 
-// ─── DESENHO: MÓDULOS ─────────────────────────────────────────────────────────
-// Sistema de coordenadas local do módulo (após ctx.rotate(m.angle) + translate + rotate):
-//   y = 0        → chão (rOut, linha de fora) — base do módulo
-//   y = negativo → sobe em direção ao centro (rIn, linha de dentro) — topo do módulo
-//   x            → tangencial (largura do módulo)
 function drawModule(m, isActive) {
-    ctx.save();
-    ctx.rotate(m.angle);
+    ctx.save(); ctx.rotate(m.angle);
+    const outer = ringRadius + ringWidth / 2; const inner = ringRadius - ringWidth / 2;
+    const H = ringWidth; const pulse = 0.5 + Math.sin(time * (m.type === 'terminal' ? 8 : 2.5)) * 0.5;
+    const glow = isActive ? 1 : 0.55;
 
-    const outer = ringRadius + ringWidth / 2;
-    const inner = ringRadius - ringWidth / 2;
-    const H = ringWidth;   // altura total disponível (chão→teto)
-    const pulse  = 0.5 + Math.sin(time * (m.type === 'terminal' ? 8 : 2.5)) * 0.5;
-    const glow   = isActive ? 1 : 0.55;
+    ctx.translate(outer, 0); ctx.rotate(-Math.PI / 2);
 
-    // Move origem para o chão (rOut) e gira: agora y=0 é chão, y<0 é para dentro (rIn)
-    ctx.translate(outer, 0);
-    ctx.rotate(-Math.PI / 2);
-
-    // ── LUZES NO TETO (y ≈ -H) — presentes em todos os módulos ─────────────
     if (m.type !== 'exit') {
-        const lightSpacing = 18;
-        const numLights = 3;
+        const lightSpacing = 18; const numLights = 3;
         for (let i = 0; i < numLights; i++) {
             const lx = -lightSpacing + i * lightSpacing;
-            ctx.fillStyle = '#334155';
-            ctx.fillRect(lx - 2, -H + 1, 5, 3);
-            ctx.fillStyle = '#1e293b';
-            ctx.beginPath(); ctx.roundRect(lx - 2, -H + 4, 5, 7, 2); ctx.fill();
-            ctx.fillStyle = m.color;
-            ctx.globalAlpha = (0.4 + pulse * 0.5) * glow;
+            ctx.fillStyle = '#334155'; ctx.fillRect(lx - 2, -H + 1, 5, 3);
+            ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.roundRect(lx - 2, -H + 4, 5, 7, 2); ctx.fill();
+            ctx.fillStyle = m.color; ctx.globalAlpha = (0.4 + pulse * 0.5) * glow;
             ctx.beginPath(); ctx.roundRect(lx - 1, -H + 5, 3, 5, 1); ctx.fill();
-            ctx.globalAlpha = 0.06 * glow;
-            ctx.fillStyle = m.color;
-            ctx.beginPath(); ctx.arc(lx, -H + 7, 12, 0, Math.PI * 2); ctx.fill();
-            ctx.globalAlpha = 1;
+            ctx.globalAlpha = 0.06 * glow; ctx.fillStyle = m.color;
+            ctx.beginPath(); ctx.arc(lx, -H + 7, 12, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
         }
     }
 
-    // ── BELICHES ─────────────────────────────────────────────────────────────
     if (m.type === 'bunks') {
         const W = 46; const modH = H * 0.88;
-        // Estrutura principal: base no chão (y=0), topo em y=-modH
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(-W/2, -modH, W, modH);
-        ctx.strokeStyle = isActive ? m.color : '#334155';
-        ctx.lineWidth = isActive ? 1.5 : 1;
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(-W/2, -modH, W, modH);
+        ctx.strokeStyle = isActive ? m.color : '#334155'; ctx.lineWidth = isActive ? 1.5 : 1;
         ctx.strokeRect(-W/2, -modH, W, modH);
-
-        // Pés metálicos nos cantos (no chão)
-        ctx.fillStyle = '#475569';
-        ctx.fillRect(-W/2, -5, 5, 5);
-        ctx.fillRect(W/2-5, -5, 5, 5);
-
-        // Escada lateral
+        ctx.fillStyle = '#475569'; ctx.fillRect(-W/2, -5, 5, 5); ctx.fillRect(W/2-5, -5, 5, 5);
         ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(W/2-4, -modH+6); ctx.lineTo(W/2-4, -5); ctx.stroke();
-        for (let r = 0; r < 4; r++) {
-            const ry = -modH + 14 + r * 16;
-            ctx.beginPath(); ctx.moveTo(W/2-4, ry); ctx.lineTo(W/2+2, ry); ctx.stroke();
-        }
-
-        // Divisória no meio
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(-W/2+2, -modH/2, W-6, 3);
-
-        // Cama de cima (topo, y=-modH até -modH/2)
+        for (let r = 0; r < 4; r++) { const ry = -modH + 14 + r * 16; ctx.beginPath(); ctx.moveTo(W/2-4, ry); ctx.lineTo(W/2+2, ry); ctx.stroke(); }
+        ctx.fillStyle = '#334155'; ctx.fillRect(-W/2+2, -modH/2, W-6, 3);
         ctx.fillStyle = '#0f172a'; ctx.fillRect(-W/2+3, -modH+5, W-10, modH/2-10);
         ctx.fillStyle = '#1e3a5f'; ctx.fillRect(-W/2+4, -modH+6, W-12, 8);
         ctx.fillStyle = '#2d4a6b'; ctx.fillRect(-W/2+4, -modH+6, W-12, 3);
         ctx.fillStyle = '#64748b'; ctx.fillRect(-W/2+4, -modH+14, 10, 7);
-
-        // Foto na cabeceira (parede do teto)
         ctx.fillStyle = '#78350f'; ctx.fillRect(-W/2+3, -modH+22, 8, 11);
-        ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.7;
-        ctx.fillRect(-W/2+4, -modH+23, 6, 9); ctx.globalAlpha = 1;
-
-        // Cama de baixo (y=-modH/2 até y=0)
+        ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.7; ctx.fillRect(-W/2+4, -modH+23, 6, 9); ctx.globalAlpha = 1;
         ctx.fillStyle = '#0f1f0f'; ctx.fillRect(-W/2+3, -modH/2+3, W-10, modH/2-12);
         ctx.fillStyle = '#1a3a1a'; ctx.fillRect(-W/2+4, -modH/2+4, W-12, 10);
         ctx.fillStyle = '#2d5a2d'; ctx.fillRect(-W/2+4, -modH/2+4, 12, 10);
         ctx.fillStyle = '#4a7a4a'; ctx.fillRect(-W/2+4, -modH/2+4, 8, 4);
-
-        // Utensílios cama de baixo
         ctx.fillStyle = '#475569'; ctx.fillRect(-W/2+30, -modH/2+3, 5, 7);
         ctx.fillStyle = '#7dd3fc'; ctx.fillRect(-W/2+30, -modH/2+3, 5, 1);
         ctx.fillStyle = '#1e293b'; ctx.fillRect(-W/2+22, -modH/2+2, 7, 5);
-        ctx.fillStyle = '#0ea5e9'; ctx.globalAlpha = 0.4 + pulse * 0.3;
-        ctx.fillRect(-W/2+23, -modH/2+3, 5, 3); ctx.globalAlpha = 1;
-
-        // Luz de presença (no chão, junto à parede de fora)
+        ctx.fillStyle = '#0ea5e9'; ctx.globalAlpha = 0.4 + pulse * 0.3; ctx.fillRect(-W/2+23, -modH/2+3, 5, 3); ctx.globalAlpha = 1;
         ctx.fillStyle = '#1e293b'; ctx.fillRect(-W/2+2, -4, 4, 4);
         if (isActive) {
-            ctx.fillStyle = m.color; ctx.globalAlpha = 0.3 + pulse * 0.3;
-            ctx.fillRect(-W/2+2, -4, 4, 4); ctx.globalAlpha = 1;
-            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color;
-            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
+            ctx.fillStyle = m.color; ctx.globalAlpha = 0.3 + pulse * 0.3; ctx.fillRect(-W/2+2, -4, 4, 4); ctx.globalAlpha = 1;
+            ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = m.color; ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.5;
             ctx.strokeRect(-W/2, -modH, W, modH); ctx.restore();
         }
-    }
-
-    // ── BELICHE DO JOHN ───────────────────────────────────────────────────────
-    else if (m.type === 'john_bunk') {
+    } else if (m.type === 'john_bunk') {
         const W = 46; const modH = H * 0.88;
-        ctx.fillStyle = '#1e2d1e';
-        ctx.fillRect(-W/2, -modH, W, modH);
-        ctx.strokeStyle = m.color; ctx.lineWidth = 1.5;
-        ctx.strokeRect(-W/2, -modH, W, modH);
-
-        // Divisória no meio
+        ctx.fillStyle = '#1e2d1e'; ctx.fillRect(-W/2, -modH, W, modH);
+        ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.strokeRect(-W/2, -modH, W, modH);
         ctx.fillStyle = '#334155'; ctx.fillRect(-W/2+2, -modH/2, W-4, 3);
-
-        // Cama de cima (vazia)
         ctx.fillStyle = '#0f172a'; ctx.fillRect(-W/2+3, -modH+5, W-10, modH/2-10);
         ctx.fillStyle = '#1e3a5f'; ctx.fillRect(-W/2+4, -modH+6, W-12, 8);
         ctx.fillStyle = '#64748b'; ctx.fillRect(-W/2+4, -modH+14, 10, 7);
-
-        // Cama de baixo — do John
         ctx.fillStyle = '#0f1f0f'; ctx.fillRect(-W/2+3, -modH/2+3, W-10, modH/2-12);
         ctx.fillStyle = '#1a3a1a'; ctx.fillRect(-W/2+4, -modH/2+4, W-12, 10);
-
-        // Foto colada na parede lateral (perto do topo do módulo)
         ctx.fillStyle = '#78350f'; ctx.fillRect(W/2-12, -modH+10, 8, 10);
-        ctx.fillStyle = '#fbbf24';
-        ctx.globalAlpha = 0.6 + Math.sin(time * 0.5) * 0.1;
-        ctx.fillRect(W/2-11, -modH+11, 6, 8); ctx.globalAlpha = 1;
-
-        // Diário sob travesseiro
+        ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.6 + Math.sin(time * 0.5) * 0.1; ctx.fillRect(W/2-11, -modH+11, 6, 8); ctx.globalAlpha = 1;
         ctx.fillStyle = '#7c2d12'; ctx.fillRect(-W/2+4, -modH/2+4, 7, 2);
-
-        if (isActive) {
-            ctx.save();
-            ctx.shadowBlur = 20; ctx.shadowColor = m.color;
-            ctx.strokeStyle = m.color; ctx.lineWidth = 2; ctx.globalAlpha = 0.6;
-            ctx.strokeRect(-W/2, -modH, W, modH); ctx.restore();
-        }
-    }
-
-    // ── ÁREA DE CONVÍVIO ──────────────────────────────────────────────────────
-    else if (m.type === 'lounge') {
+        if (isActive) { ctx.save(); ctx.shadowBlur = 20; ctx.shadowColor = m.color; ctx.strokeStyle = m.color; ctx.lineWidth = 2; ctx.globalAlpha = 0.6; ctx.strokeRect(-W/2, -modH, W, modH); ctx.restore(); }
+    } else if (m.type === 'lounge') {
         const W = 50; const modH = H * 0.85;
         ctx.fillStyle = '#0f1a1f'; ctx.fillRect(-W/2, -modH, W, modH);
-        ctx.strokeStyle = isActive ? m.color : '#334155'; ctx.lineWidth = 1;
-        ctx.strokeRect(-W/2, -modH, W, modH);
-
-        // Mesa central (no meio vertical do módulo)
-        const tableY = -modH * 0.55;
-        const mw = W - 16; const mh = 14;
+        ctx.strokeStyle = isActive ? m.color : '#334155'; ctx.lineWidth = 1; ctx.strokeRect(-W/2, -modH, W, modH);
+        const tableY = -modH * 0.55; const mw = W - 16; const mh = 14;
         ctx.fillStyle = '#1e3a3a'; ctx.fillRect(-mw/2, tableY, mw, mh);
         ctx.strokeStyle = '#2d5a5a'; ctx.lineWidth = 1; ctx.strokeRect(-mw/2, tableY, mw, mh);
-        // Pés da mesa (descem em direção ao chão)
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(-mw/2+2, tableY+mh, 3, 8);
-        ctx.fillRect(mw/2-5, tableY+mh, 3, 8);
-
-        // Cadeiras (acima e abaixo da mesa)
+        ctx.fillStyle = '#334155'; ctx.fillRect(-mw/2+2, tableY+mh, 3, 8); ctx.fillRect(mw/2-5, tableY+mh, 3, 8);
         for (let i = 0; i < 2; i++) {
             const cy2 = tableY - 22 + i * (mh + 28);
-            ctx.fillStyle = i === 0 ? '#1a2e1a' : '#1e293b';
-            ctx.fillRect(-W/2+4, cy2, 6, 10);
-            ctx.fillRect(W/2-10, cy2, 6, 10);
-            ctx.fillStyle = i === 0 ? '#2d4a2d' : '#334155';
-            ctx.fillRect(-W/2+3, cy2 + (i===0?10:-4), 8, 5);
-            ctx.fillRect(W/2-11, cy2 + (i===0?10:-4), 8, 5);
+            ctx.fillStyle = i === 0 ? '#1a2e1a' : '#1e293b'; ctx.fillRect(-W/2+4, cy2, 6, 10); ctx.fillRect(W/2-10, cy2, 6, 10);
+            ctx.fillStyle = i === 0 ? '#2d4a2d' : '#334155'; ctx.fillRect(-W/2+3, cy2 + (i===0?10:-4), 8, 5); ctx.fillRect(W/2-11, cy2 + (i===0?10:-4), 8, 5);
         }
-
-        // Bandeja + café
         ctx.fillStyle = '#374151'; ctx.fillRect(-mw/2+3, tableY+2, 14, 9);
         ctx.fillStyle = '#78350f'; ctx.fillRect(-mw/2+14, tableY+3, 4, 7);
-        ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.2;
-        ctx.fillRect(-mw/2+14, tableY+3, 4, 2); ctx.globalAlpha = 1;
-        // Vapor
-        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.3 + Math.sin(time*3)*0.3;
-        ctx.beginPath(); ctx.moveTo(-mw/2+16, tableY+2); ctx.quadraticCurveTo(-mw/2+18, tableY-3, -mw/2+15, tableY-6); ctx.stroke();
-        ctx.globalAlpha = 1;
-        // Tablete
+        ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.2; ctx.fillRect(-mw/2+14, tableY+3, 4, 2); ctx.globalAlpha = 1;
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1; ctx.globalAlpha = 0.3 + Math.sin(time*3)*0.3;
+        ctx.beginPath(); ctx.moveTo(-mw/2+16, tableY+2); ctx.quadraticCurveTo(-mw/2+18, tableY-3, -mw/2+15, tableY-6); ctx.stroke(); ctx.globalAlpha = 1;
         ctx.fillStyle = '#1e293b'; ctx.fillRect(-mw/2+20, tableY+2, 10, 7);
-        ctx.fillStyle = '#0ea5e9'; ctx.globalAlpha = 0.2 + pulse*0.2;
-        ctx.fillRect(-mw/2+21, tableY+3, 8, 5); ctx.globalAlpha = 1;
-
-        if (isActive) {
-            ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = m.color;
-            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.4;
-            ctx.strokeRect(-W/2, -modH, W, modH); ctx.restore();
-        }
-    }
-
-    // ── TERMINAL / COMPUTADOR ─────────────────────────────────────────────────
-    else if (m.type === 'terminal') {
+        ctx.fillStyle = '#0ea5e9'; ctx.globalAlpha = 0.2 + pulse*0.2; ctx.fillRect(-mw/2+21, tableY+3, 8, 5); ctx.globalAlpha = 1;
+        if (isActive) { ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = m.color; ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.4; ctx.strokeRect(-W/2, -modH, W, modH); ctx.restore(); }
+    } else if (m.type === 'terminal') {
         const W = 50; const modH = H * 0.88;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(-W/2, -modH, W, modH);
-        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.5;
-        ctx.strokeRect(-W/2, -modH, W, modH);
-
-        // Monitor no topo
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(-W/2, -modH, W, modH);
+        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.5; ctx.strokeRect(-W/2, -modH, W, modH);
         const monH = modH * 0.5;
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(-W/2+4, -modH+4, W-8, monH-2);
-        ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
-        ctx.strokeRect(-W/2+4, -modH+4, W-8, monH-2);
-
-        // Tela sem sinal
-        ctx.fillStyle = '#1c0505';
-        ctx.fillRect(-W/2+6, -modH+6, W-12, monH-6);
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(-W/2+4, -modH+4, W-8, monH-2);
+        ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.strokeRect(-W/2+4, -modH+4, W-8, monH-2);
+        ctx.fillStyle = '#1c0505'; ctx.fillRect(-W/2+6, -modH+6, W-12, monH-6);
         for (let i = 0; i < 7; i++) {
             const lY = -modH + 10 + i * 4 + Math.sin(time * 15 + i) * 1.2;
-            ctx.strokeStyle = `rgba(239,68,68,${0.07 + Math.random() * 0.12})`;
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgba(239,68,68,${0.07 + Math.random() * 0.12})`; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(-W/2+6, lY); ctx.lineTo(W/2-6, lY); ctx.stroke();
         }
-        ctx.fillStyle = '#ef4444'; ctx.globalAlpha = 0.25 + pulse * 0.25;
-        ctx.font = '4px Orbitron, monospace';
+        ctx.fillStyle = '#ef4444'; ctx.globalAlpha = 0.25 + pulse * 0.25; ctx.font = '4px Orbitron, monospace';
         ctx.fillText('NO SIGNAL', -W/2+10, -modH + monH/2 + 2); ctx.globalAlpha = 1;
-
-        // Pescoço do monitor
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(-3, -modH+monH+2, 6, 6);
-        ctx.fillRect(-10, -modH+monH+7, 20, 4);
-
-        // Teclado (mais perto do chão)
+        ctx.fillStyle = '#334155'; ctx.fillRect(-3, -modH+monH+2, 6, 6); ctx.fillRect(-10, -modH+monH+7, 20, 4);
         const kbY = -18;
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(-W/2+4, kbY, W-8, 14);
-        ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
-        ctx.strokeRect(-W/2+4, kbY, W-8, 14);
-        for (let row = 0; row < 2; row++) {
-            for (let col = 0; col < 8; col++) {
-                ctx.fillStyle = '#0f172a';
-                ctx.fillRect(-W/2+6 + col*5, kbY+2 + row*6, 4, 4);
-            }
-        }
-
-        // LED de erro piscando (no chão)
-        ctx.fillStyle = '#ef4444'; ctx.globalAlpha = pulse;
-        ctx.beginPath(); ctx.arc(W/2-6, -5, 3, 0, Math.PI*2); ctx.fill();
-        ctx.globalAlpha = 1;
-
-        // Mouse
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath(); ctx.ellipse(W/2+4, kbY+7, 5, 7, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(-W/2+4, kbY, W-8, 14);
+        ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.strokeRect(-W/2+4, kbY, W-8, 14);
+        for (let row = 0; row < 2; row++) { for (let col = 0; col < 8; col++) { ctx.fillStyle = '#0f172a'; ctx.fillRect(-W/2+6 + col*5, kbY+2 + row*6, 4, 4); } }
+        ctx.fillStyle = '#ef4444'; ctx.globalAlpha = pulse; ctx.beginPath(); ctx.arc(W/2-6, -5, 3, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.ellipse(W/2+4, kbY+7, 5, 7, 0, 0, Math.PI*2); ctx.fill();
         ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.8; ctx.stroke();
-    }
-
-    // ── ARMÁRIOS ──────────────────────────────────────────────────────────────
-    else if (m.type === 'lockers') {
+    } else if (m.type === 'lockers') {
         const W = 52; const modH = H * 0.92;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(-W/2, -modH, W, modH);
-        ctx.strokeStyle = isActive ? m.color : '#334155';
-        ctx.lineWidth = isActive ? 1.5 : 1;
-        ctx.strokeRect(-W/2, -modH, W, modH);
-
-        // Pés no chão
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(-W/2+2, -5, 8, 5);
-        ctx.fillRect(W/2-10, -5, 8, 5);
-
-        // 3 linhas × 2 colunas de vãos
-        const colW = (W - 6) / 2;
-        const vaoH = (modH - 10) / 3;
-
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(-W/2, -modH, W, modH);
+        ctx.strokeStyle = isActive ? m.color : '#334155'; ctx.lineWidth = isActive ? 1.5 : 1; ctx.strokeRect(-W/2, -modH, W, modH);
+        ctx.fillStyle = '#334155'; ctx.fillRect(-W/2+2, -5, 8, 5); ctx.fillRect(W/2-10, -5, 8, 5);
+        const colW = (W - 6) / 2; const vaoH = (modH - 10) / 3;
         for (let col = 0; col < 2; col++) {
             for (let row = 0; row < 3; row++) {
-                const vx = -W/2 + 3 + col * (colW + 2);
-                const vy = -modH + 4 + row * (vaoH + 1);
-                ctx.fillStyle = '#0a0f0a';
-                ctx.fillRect(vx, vy, colW, vaoH - 1);
-                ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 0.8;
-                ctx.strokeRect(vx, vy, colW, vaoH - 1);
-
+                const vx = -W/2 + 3 + col * (colW + 2); const vy = -modH + 4 + row * (vaoH + 1);
+                ctx.fillStyle = '#0a0f0a'; ctx.fillRect(vx, vy, colW, vaoH - 1);
+                ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 0.8; ctx.strokeRect(vx, vy, colW, vaoH - 1);
                 const seed = col * 3 + row;
                 if (seed === 0) {
-                    ctx.fillStyle = '#e2e8f0';
-                    ctx.beginPath(); ctx.arc(vx + colW/2, vy + vaoH/2, 6, Math.PI, 0); ctx.fill();
-                    ctx.fillStyle = '#0f172a';
-                    ctx.beginPath(); ctx.ellipse(vx + colW/2 + 1.5, vy + vaoH/2, 4.5, 3, 0, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#e2e8f0'; ctx.beginPath(); ctx.arc(vx + colW/2, vy + vaoH/2, 6, Math.PI, 0); ctx.fill();
+                    ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.ellipse(vx + colW/2 + 1.5, vy + vaoH/2, 4.5, 3, 0, 0, Math.PI*2); ctx.fill();
                 } else if (seed === 1) {
                     ctx.fillStyle = '#78350f'; ctx.fillRect(vx+3, vy+3, 8, 10);
-                    ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.6;
-                    ctx.fillRect(vx+4, vy+4, 6, 8); ctx.globalAlpha = 1;
+                    ctx.fillStyle = '#fbbf24'; ctx.globalAlpha = 0.6; ctx.fillRect(vx+4, vy+4, 6, 8); ctx.globalAlpha = 1;
                     ctx.fillStyle = '#334155'; ctx.fillRect(vx+2, vy+vaoH-6, colW-4, 4);
                 } else if (seed === 2) {
                     ctx.fillStyle = '#1d4ed8'; ctx.fillRect(vx+4, vy+4, 5, vaoH-8);
                     ctx.fillStyle = '#60a5fa'; ctx.fillRect(vx+4, vy+4, 5, 3);
                     ctx.fillStyle = '#475569'; ctx.fillRect(vx+12, vy+vaoH-10, 4, 8);
                 } else if (seed === 3) {
-                    ctx.strokeStyle = '#64748b'; ctx.lineWidth = 1;
-                    ctx.beginPath(); ctx.moveTo(vx+4, vy+3); ctx.lineTo(vx+colW-4, vy+3); ctx.stroke();
-                    for (let c = 0; c < 3; c++) {
-                        ctx.fillStyle = ['#1e3a5f','#1a3a1a','#3b1a1a'][c];
-                        ctx.fillRect(vx + 3 + c*7, vy+4, 5, vaoH-6);
-                    }
+                    ctx.strokeStyle = '#64748b'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(vx+4, vy+3); ctx.lineTo(vx+colW-4, vy+3); ctx.stroke();
+                    for (let c = 0; c < 3; c++) { ctx.fillStyle = ['#1e3a5f','#1a3a1a','#3b1a1a'][c]; ctx.fillRect(vx + 3 + c*7, vy+4, 5, vaoH-6); }
                 } else if (seed === 4) {
                     const cols2 = ['#1d4ed8','#065f46','#7c2d12','#4c1d95'];
-                    for (let b = 0; b < 4; b++) {
-                        ctx.fillStyle = cols2[b];
-                        ctx.fillRect(vx+2 + b*5, vy+vaoH-12, 4, 10);
-                    }
+                    for (let b = 0; b < 4; b++) { ctx.fillStyle = cols2[b]; ctx.fillRect(vx+2 + b*5, vy+vaoH-12, 4, 10); }
                 } else {
-                    ctx.fillStyle = '#ef4444'; ctx.globalAlpha = 0.04 + pulse*0.03;
-                    ctx.fillRect(vx, vy, colW, vaoH-1); ctx.globalAlpha = 1;
+                    ctx.fillStyle = '#ef4444'; ctx.globalAlpha = 0.04 + pulse*0.03; ctx.fillRect(vx, vy, colW, vaoH-1); ctx.globalAlpha = 1;
                 }
             }
         }
-
-        ctx.fillStyle = m.color;
-        ctx.globalAlpha = isActive ? 0.15 : 0.04;
-        ctx.fillRect(-W/2+2, -modH+4, colW, vaoH-1);
-        ctx.globalAlpha = 1;
-
+        ctx.fillStyle = m.color; ctx.globalAlpha = isActive ? 0.15 : 0.04; ctx.fillRect(-W/2+2, -modH+4, colW, vaoH-1); ctx.globalAlpha = 1;
+        if (isActive) { ctx.save(); ctx.shadowBlur = 16; ctx.shadowColor = m.color; ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.4; ctx.strokeRect(-W/2, -modH, W, modH); ctx.restore(); }
+    } else if (m.type === 'exit') {
+        const portalW = 36;
+        ctx.fillStyle = '#010205'; ctx.fillRect(-portalW/2, -H+2, portalW, H-4);
         if (isActive) {
-            ctx.save(); ctx.shadowBlur = 16; ctx.shadowColor = m.color;
-            ctx.strokeStyle = m.color; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.4;
-            ctx.strokeRect(-W/2, -modH, W, modH); ctx.restore();
+            ctx.save(); ctx.shadowBlur = 25; ctx.shadowColor = m.color; ctx.strokeStyle = m.color; ctx.lineWidth = 3;
+            ctx.globalAlpha = 0.5 + pulse * 0.5; ctx.strokeRect(-portalW/2-2, -H, portalW+4, H+2); ctx.restore();
         }
-    }
-
-    // ── SAÍDA ─────────────────────────────────────────────────────────────────
-    else if (m.type === 'exit') {
-        const portalW = 36; // largura da porta (tangencial)
-        // Porta ocupa toda a altura do anel (y=0 ao y=-H)
-        ctx.fillStyle = '#010205';
-        ctx.fillRect(-portalW/2, -H+2, portalW, H-4);
-
-        if (isActive) {
-            ctx.save(); ctx.shadowBlur = 25; ctx.shadowColor = m.color;
-            ctx.strokeStyle = m.color; ctx.lineWidth = 3;
-            ctx.globalAlpha = 0.5 + pulse * 0.5;
-            ctx.strokeRect(-portalW/2-2, -H, portalW+4, H+2);
-            ctx.restore();
-        }
-
-        // Painéis deslizantes (abrem verticalmente — para o teto e chão)
         const slide = isActive ? (H/2) * 0.7 : 0;
-        ctx.save();
-        ctx.beginPath(); ctx.rect(-portalW/2, -H+2, portalW, H-4); ctx.clip();
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(-portalW/2, -H+2, portalW, H/2 - slide); // painel de cima
-        ctx.fillRect(-portalW/2, -H/2 + slide, portalW, H/2); // painel de baixo
-        ctx.fillStyle = m.color; ctx.globalAlpha = 0.25;
-        ctx.fillRect(-2, -H+2, 4, H-4); // linha central
-        ctx.restore();
+        ctx.save(); ctx.beginPath(); ctx.rect(-portalW/2, -H+2, portalW, H-4); ctx.clip();
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(-portalW/2, -H+2, portalW, H/2 - slide); ctx.fillRect(-portalW/2, -H/2 + slide, portalW, H/2);
+        ctx.fillStyle = m.color; ctx.globalAlpha = 0.25; ctx.fillRect(-2, -H+2, 4, H-4); ctx.restore();
     }
 
     ctx.restore();
-
-    // Detecção de proximidade
     const pAng = ((playerAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
     const mAng = ((m.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-    let diff = Math.abs(pAng - mAng);
-    if (diff > Math.PI) diff = Math.PI * 2 - diff;
+    let diff = Math.abs(pAng - mAng); if (diff > Math.PI) diff = Math.PI * 2 - diff;
     return diff < 0.22;
 }
 
 // ─── LOOP PRINCIPAL ───────────────────────────────────────────────────────────
 function loop() {
     resize();
-    time += 0.016;
-    stationRot += 0.0007; // anel gira mais devagar — peso da solidão
-    playerVel += input;
-    playerVel *= 0.84;
-    playerAngle += playerVel;
+    time += 0.016; stationRot += 0.0007; playerVel += input; playerVel *= 0.84; playerAngle += playerVel;
 
-    // Som de passo
     if (Math.abs(playerVel) > 0.0008) {
         const stepPeriod = 0.55;
-        if (time - lastStep > stepPeriod) {
-            sfx.playFootstep();
-            lastStep = time;
-        }
+        if (time - lastStep > stepPeriod) { sfx.playFootstep(); lastStep = time; }
     }
 
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#010205';
-    ctx.fillRect(0, 0, w, h);
+    ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#010205'; ctx.fillRect(0, 0, w, h);
 
-    // Fundo estelar
     ctx.save(); ctx.translate(cx, cy); ctx.rotate(stationRot * 0.4);
     stars.forEach(s => {
         const flicker = 0.6 + Math.sin(time * 1.5 + s.x) * 0.4;
-        ctx.globalAlpha = s.o * flicker;
-        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = s.o * flicker; ctx.fillStyle = '#ffffff';
         ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI * 2); ctx.fill();
     });
     ctx.restore();
 
-    // Anel principal
     ctx.save(); ctx.translate(cx, cy); ctx.rotate(stationRot);
 
-    const rIn = ringRadius - ringWidth / 2;
-    const rOut = ringRadius + ringWidth / 2;
+    const rIn = ringRadius - ringWidth / 2; const rOut = ringRadius + ringWidth / 2;
 
-    // Gradiente radial do anel — verde escurecido, habitat
     const ringG = ctx.createRadialGradient(0, 0, rIn, 0, 0, rOut);
-    ringG.addColorStop(0, '#06100a');
-    ringG.addColorStop(0.3, '#0d1f12');
-    ringG.addColorStop(0.7, '#0d1f12');
-    ringG.addColorStop(1, '#06100a');
-    ctx.beginPath();
-    ctx.arc(0, 0, rOut, 0, Math.PI * 2, false);
-    ctx.arc(0, 0, rIn, 0, Math.PI * 2, true);
+    ringG.addColorStop(0, '#06100a'); ringG.addColorStop(0.3, '#0d1f12');
+    ringG.addColorStop(0.7, '#0d1f12'); ringG.addColorStop(1, '#06100a');
+    ctx.beginPath(); ctx.arc(0, 0, rOut, 0, Math.PI * 2, false); ctx.arc(0, 0, rIn, 0, Math.PI * 2, true);
     ctx.fillStyle = ringG; ctx.fill();
 
-    // Grade interna sutil
     ctx.strokeStyle = 'rgba(74, 222, 128, 0.04)'; ctx.lineWidth = 1;
     for (let i = 0; i < 24; i++) {
         ctx.save(); ctx.rotate(i * (Math.PI / 12));
-        ctx.beginPath(); ctx.moveTo(rIn, 0); ctx.lineTo(rOut, 0); ctx.stroke();
-        ctx.restore();
+        ctx.beginPath(); ctx.moveTo(rIn, 0); ctx.lineTo(rOut, 0); ctx.stroke(); ctx.restore();
     }
 
-    // Partículas de poeira flutuando no anel
     dustParticles.forEach(d => {
         d.angle += d.speed + stationRot * 0;
-        const dr = rIn + d.r * ringWidth;
-        const dx = Math.cos(d.angle) * dr;
-        const dy = Math.sin(d.angle) * dr;
+        const dr = rIn + d.r * ringWidth; const dx = Math.cos(d.angle) * dr; const dy = Math.sin(d.angle) * dr;
         ctx.globalAlpha = d.opacity * (0.5 + Math.sin(time * 2 + d.angle) * 0.5);
-        ctx.fillStyle = '#4ade80';
-        ctx.beginPath(); ctx.arc(dx, dy, d.size, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#4ade80'; ctx.beginPath(); ctx.arc(dx, dy, d.size, 0, Math.PI * 2); ctx.fill();
     });
     ctx.globalAlpha = 1;
 
-    // Teto interno
     ctx.beginPath(); ctx.arc(0, 0, rIn, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(74, 222, 128, 0.25)'; ctx.lineWidth = 3; ctx.stroke();
-    // Luz neon de teto
     ctx.beginPath(); ctx.arc(0, 0, rIn + 3, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(74, 222, 128, 0.08)'; ctx.lineWidth = 1; ctx.stroke();
 
-    // Módulos
     let activeMod = null;
-    modules.forEach(m => {
-        if (drawModule(m, false)) {
-            if (!activeMod) activeMod = m;
-        }
-    });
-    // Segundo passo: desenha o ativo por cima com destaque
-    if (activeMod) {
-        drawModule(activeMod, true);
-        sfx.updateProximity(activeMod.type, 1);
-    } else {
-        sfx.updateProximity(null, 0);
-    }
+    modules.forEach(m => { if (drawModule(m, false)) { if (!activeMod) activeMod = m; } });
+    if (activeMod) { drawModule(activeMod, true); sfx.updateProximity(activeMod.type, 1); }
+    else { sfx.updateProximity(null, 0); }
     currentActiveModule = activeMod;
 
-    // Astronauta
     ctx.save();
-    ctx.rotate(playerAngle);
-    ctx.translate(ringRadius + ringWidth / 2 - 22, 0);
-    ctx.rotate(-Math.PI / 2);
+    ctx.rotate(playerAngle); ctx.translate(ringRadius + ringWidth / 2 - 22, 0); ctx.rotate(-Math.PI / 2);
     drawAstronaut(time, playerVel);
     ctx.restore();
 
-    // Linha do CHÃO — por cima de tudo
     ctx.beginPath(); ctx.arc(0, 0, rOut, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(74, 222, 128, 0.85)'; ctx.lineWidth = 4; ctx.stroke();
 
-    ctx.restore(); // fim da translação do anel
+    ctx.restore(); 
 
-    // UI — módulo ativo
     if (currentActiveModule) {
         mTitle.innerText = currentActiveModule.name;
         mTitle.style.color = currentActiveModule.color;
         mTitle.style.textShadow = `0 0 14px ${currentActiveModule.color}`;
         mDesc.innerText = currentActiveModule.desc;
-        mCard.classList.add('visible');
-        actBtn.classList.add('active');
+        mCard.classList.add('visible'); actBtn.classList.add('active');
         actBtn.style.background = currentActiveModule.color;
         actBtn.style.boxShadow = `0 0 30px ${currentActiveModule.color}55`;
 
-        if (currentActiveModule.type === 'exit') {
-            actBtn.innerHTML = '<b>SAIR DO<br>HABITAT</b>';
-        } else if (currentActiveModule.type === 'terminal') {
-            actBtn.innerHTML = '<b>VER<br>TERMINAL</b>';
-        } else if (currentActiveModule.type === 'john_bunk') {
-            actBtn.innerHTML = '<b>EXAMINAR<br>BELICHE</b>';
-        } else {
-            actBtn.innerHTML = '<b>EXAMINAR<br>MÓDULO</b>';
-        }
+        if (currentActiveModule.type === 'exit') { actBtn.innerHTML = '<b>SAIR DO<br>HABITAT</b>'; }
+        else if (currentActiveModule.type === 'terminal') { actBtn.innerHTML = '<b>VER<br>TERMINAL</b>'; }
+        else if (currentActiveModule.type === 'john_bunk') { actBtn.innerHTML = '<b>EXAMINAR<br>BELICHE</b>'; }
+        else { actBtn.innerHTML = '<b>EXAMINAR<br>MÓDULO</b>'; }
     } else {
-        mCard.classList.remove('visible');
-        actBtn.classList.remove('active');
+        mCard.classList.remove('visible'); actBtn.classList.remove('active');
     }
 
     requestAnimationFrame(loop);
