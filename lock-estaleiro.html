@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estaleiro - Override de Segurança</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon: #4ade80;
+            --neon-dim: rgba(74, 222, 128, 0.2);
+            --bg: #1a1a1a;
+            --locked: #ff3e3e;
+            --iron: #2c2c2e;
+            --iron-light: #48484a;
+            --glass: rgba(0, 20, 10, 0.85);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #000;
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* CHAPA DE FERRO ESCOVADO */
+        .metal-plate {
+            position: relative;
+            width: 90vw;
+            max-width: 500px;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, var(--iron) 0%, #111 50%, var(--iron) 100%);
+            background-size: 4px 4px; /* Simula grão do metal */
+            border: 4px solid #3a3a3c;
+            border-radius: 10px;
+            box-shadow: 
+                0 0 50px rgba(0,0,0,1),
+                inset 2px 2px 5px rgba(255,255,255,0.1),
+                inset -2px -2px 5px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1;
+        }
+
+        /* PARAFUSOS */
+        .screw {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: #3a3a3c;
+            border-radius: 50%;
+            box-shadow: inset 2px 2px 2px rgba(0,0,0,0.5);
+        }
+        .screw::after {
+            content: '';
+            position: absolute;
+            width: 80%; height: 2px;
+            background: #111;
+            top: 50%; left: 10%;
+            transform: rotate(45deg);
+        }
+        .top-left { top: 15px; left: 15px; }
+        .top-right { top: 15px; right: 15px; }
+        .bottom-left { bottom: 15px; left: 15px; }
+        .bottom-right { bottom: 15px; right: 15px; }
+
+        /* PAINEL DIGITAL (TELA) */
+        .digital-screen {
+            position: relative;
+            width: 100%;
+            background: var(--glass);
+            border: 10px solid #111;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: inset 0 0 20px rgba(0,255,100,0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        /* EFEITO DE SCANLINE */
+        .digital-screen::before {
+            content: " ";
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* HEADER */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            z-index: 3;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--locked);
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px var(--locked);
+            animation: flicker 2s infinite;
+        }
+
+        @keyframes flicker {
+            0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
+            20%, 24%, 55% { opacity: 0.7; }
+        }
+
+        .subtitle {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 12px;
+            color: #4ade80;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        /* PUZZLE AREA */
+        .lock-container {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            background: #050505;
+            border-radius: 50%;
+            border: 4px solid #111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(74, 222, 128, 0.1);
+            cursor: pointer;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: center;
+        }
+
+        .ring:hover {
+            border-color: rgba(74, 222, 128, 0.4);
+            background: rgba(74, 222, 128, 0.02);
+        }
+
+        .marker {
+            position: absolute;
+            width: 8px;
+            background: var(--locked);
+            border-radius: 2px;
+            box-shadow: 0 0 8px var(--locked);
+            top: -5px;
+        }
+
+        #ring-outer { width: 240px; height: 240px; }
+        #ring-outer .marker { height: 35px; }
+
+        #ring-middle { width: 170px; height: 170px; }
+        #ring-middle .marker { height: 35px; }
+
+        #ring-inner { width: 100px; height: 100px; }
+        #ring-inner .marker { height: 35px; }
+
+        .core {
+            position: absolute;
+            width: 30px; height: 30px;
+            background: #111;
+            border: 2px solid var(--locked);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--locked);
+            z-index: 10;
+        }
+
+        /* SUCCESS STATE */
+        body.solved .title {
+            color: var(--neon);
+            text-shadow: 0 0 15px var(--neon);
+            animation: none;
+        }
+        body.solved .marker, body.solved .core {
+            background: var(--neon);
+            box-shadow: 0 0 15px var(--neon);
+            border-color: #fff;
+        }
+        body.solved .ring { pointer-events: none; }
+
+        /* BOTÃO TERMINAL */
+        #btn-enter {
+            margin-top: 30px;
+            padding: 12px 25px;
+            background: #000;
+            border: 2px solid var(--neon);
+            color: var(--neon);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s;
+            box-shadow: 0 0 10px var(--neon-dim);
+        }
+
+        body.solved #btn-enter {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #btn-enter:hover {
+            background: var(--neon);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="metal-plate">
+        <div class="screw top-left"></div>
+        <div class="screw top-right"></div>
+        <div class="screw bottom-left"></div>
+        <div class="screw bottom-right"></div>
+
+        <div class="digital-screen">
+            <div class="header">
+                <div class="title" id="status-title">SYSTEM LOCKED</div>
+                <div class="subtitle" id="status-sub">ALINHAR CONDUÍTES DE NÚCLEO</div>
+            </div>
+
+            <div class="lock-container">
+                <div class="ring" id="ring-outer" onclick="rotateRing('outer')">
+                    <div class="marker"></div>
+                </div>
+                <div class="ring" id="ring-middle" onclick="rotateRing('middle')">
+                    <div class="marker"></div>
+                </div>
+                <div class="ring" id="ring-inner" onclick="rotateRing('inner')">
+                    <div class="marker"></div>
+                </div>
+                <div class="core" id="core"></div>
+            </div>
+        </div>
+
+        <button id="btn-enter" onclick="enterShipyard()">ACESSAR ESTALEIRO.HTML</button>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playBeep(freq, type, duration, vol) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const state = {
+            outer: 90,
+            middle: 225,
+            inner: 135
+        };
+
+        const rings = {
+            outer: document.getElementById('ring-outer'),
+            middle: document.getElementById('ring-middle'),
+            inner: document.getElementById('ring-inner')
+        };
+
+        let isSolved = false;
+
+        function updateVisuals() {
+            rings.outer.style.transform = `rotate(${state.outer}deg)`;
+            rings.middle.style.transform = `rotate(${state.middle}deg)`;
+            rings.inner.style.transform = `rotate(${state.inner}deg)`;
+        }
+
+        function rotateRing(ringName) {
+            if (isSolved) return;
+            playBeep(400, 'sine', 0.1, 0.1);
+            state[ringName] += 45;
+            updateVisuals();
+            checkSolution();
+        }
+
+        function checkSolution() {
+            const outOk = (state.outer % 360) === 0;
+            const midOk = (state.middle % 360) === 0;
+            const inOk = (state.inner % 360) === 0;
+
+            if (outOk && midOk && inOk) {
+                isSolved = true;
+                setTimeout(triggerSuccess, 400);
+            }
+        }
+
+        function triggerSuccess() {
+            playBeep(600, 'sine', 0.5, 0.2);
+            setTimeout(() => playBeep(800, 'sine', 0.8, 0.2), 150);
+            
+            document.body.classList.add('solved');
+            document.getElementById('status-title').innerText = "ACCESS GRANTED";
+            document.getElementById('status-sub').innerText = "ESTALEIRO PRONTO PARA ENTRADA";
+        }
+
+        function enterShipyard() {
+            playBeep(1000, 'square', 0.1, 0.05);
+            setTimeout(() => {
+                // Redireciona para o arquivo conforme solicitado
+                window.location.href = "estaleiro.html";
+            }, 200);
+        }
+
+        updateVisuals();
+    </script>
+</body>
+</html>
