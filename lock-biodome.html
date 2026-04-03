@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio-Dome - Terminal de Aço</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bio-green: #22c55e;
+            --bio-dark: #052e16;
+            --steel: #2c2c2e;
+            --steel-light: #48484a;
+            --accent: #facc15;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* Efeito de Aço Escovado para o Chassis */
+        .steel-chassis {
+            position: relative;
+            width: 90vw;
+            max-width: 480px;
+            background: 
+                url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Ffilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+                linear-gradient(135deg, #3a3a3c 0%, #1a1a1c 100%);
+            background-blend-mode: overlay;
+            border: 4px solid #444;
+            border-radius: 8px;
+            padding: 40px 25px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.8), inset 2px 2px 0 rgba(255,255,255,0.1);
+        }
+
+        /* Parafusos nos cantos */
+        .screw {
+            position: absolute;
+            width: 16px; height: 16px;
+            background: radial-gradient(circle at 30% 30%, #666, #222);
+            border-radius: 50%;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .screw::after {
+            content: '';
+            position: absolute; width: 80%; height: 2px;
+            background: #111; top: 45%; left: 10%;
+            transform: rotate(45deg);
+        }
+        .tl { top: 15px; left: 15px; }
+        .tr { top: 15px; right: 15px; }
+        .bl { bottom: 15px; left: 15px; }
+        .br { bottom: 15px; right: 15px; }
+
+        /* Ecrã Retro-Iluminado */
+        .digital-screen {
+            background: #020602;
+            border: 10px solid #111;
+            border-radius: 4px;
+            position: relative;
+            height: 320px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: inset 0 0 40px rgba(34, 197, 94, 0.1);
+        }
+
+        .digital-screen::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: repeating-linear-gradient(rgba(34, 197, 94, 0.03) 0px, transparent 2px, transparent 4px);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Colunas de Fluxo Bio-Digital */
+        .flow-container {
+            display: flex;
+            gap: 25px;
+            align-items: flex-end;
+            height: 180px;
+            z-index: 5;
+        }
+
+        .track {
+            width: 45px;
+            height: 100%;
+            background: rgba(34, 197, 94, 0.05);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .bar {
+            width: 100%;
+            background: var(--bio-green);
+            box-shadow: 0 0 15px var(--bio-green);
+            transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .target-zone {
+            position: absolute;
+            top: 40%;
+            width: 100%;
+            height: 20px;
+            background: rgba(250, 204, 21, 0.1);
+            border-top: 1px dashed var(--accent);
+            border-bottom: 1px dashed var(--accent);
+            pointer-events: none;
+        }
+
+        /* Botões Industriais */
+        .metal-btn {
+            background: linear-gradient(180deg, #444, #222);
+            border: 1px solid #111;
+            border-bottom: 4px solid #000;
+            color: #888;
+            padding: 12px 5px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.1s;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metal-btn:active {
+            border-bottom-width: 1px;
+            transform: translateY(3px);
+            color: var(--bio-green);
+            background: #111;
+        }
+
+        .success-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            border: 2px solid var(--bio-green);
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="steel-chassis">
+        <div class="screw tl"></div>
+        <div class="screw tr"></div>
+        <div class="screw bl"></div>
+        <div class="screw br"></div>
+
+        <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
+            <div>
+                <h1 class="text-[10px] font-black tracking-widest text-gray-400">BIO-DOME_CMD_UNIT</h1>
+                <p class="text-[8px] font-mono text-gray-600">ID: BD-4409-RES</p>
+            </div>
+            <div id="status-led" class="flex items-center gap-2">
+                <span class="text-[8px] text-yellow-600 font-bold">DESALINHADO</span>
+                <div class="w-2 h-2 rounded-full bg-yellow-600 animate-pulse"></div>
+            </div>
+        </div>
+
+        <div class="digital-screen">
+            <div class="flow-container">
+                <div class="track"><div id="bar-1" class="bar" style="height: 20%;"></div><div class="target-zone"></div></div>
+                <div class="track"><div id="bar-2" class="bar" style="height: 80%;"></div><div class="target-zone"></div></div>
+                <div class="track"><div id="bar-3" class="bar" style="height: 40%;"></div><div class="target-zone"></div></div>
+            </div>
+            <div class="mt-8 text-[9px] font-mono opacity-30 text-green-500 uppercase tracking-widest">
+                Estabilizar Fluxo Sincrónico
+            </div>
+        </div>
+
+        <div id="interface-btns" class="grid grid-cols-3 gap-4">
+            <button class="metal-btn" onclick="adjust(1)">Manual_A</button>
+            <button class="metal-btn" onclick="adjust(2)">Manual_B</button>
+            <button class="metal-btn" onclick="adjust(3)">Manual_C</button>
+        </div>
+
+        <div id="win-ui" class="success-overlay hidden">
+            <div class="text-white font-bold text-xl mb-1 italic">ACESSO LIBERADO</div>
+            <div class="text-green-500 text-[10px] mb-8 font-mono">PROTOCOLO DE SEGURANÇA BIOMÉTRICO: OK</div>
+            <button onclick="finalizar()" class="px-10 py-4 bg-green-600 text-black font-black uppercase text-xs hover:bg-green-400 transition-all shadow-[0_0_20px_rgba(34,197,94,0.5)]">
+                Abrir Portal
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const state = { v1: 20, v2: 80, v3: 40 };
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(f) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.frequency.value = f;
+            g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(); o.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function adjust(id) {
+            playSound(150 + (id * 50));
+            // Lógica de interferência: ajustar um afeta o seguinte
+            if (id === 1) {
+                state.v1 = (state.v1 + 10) % 105;
+                state.v2 = (state.v2 + 5) % 105;
+            } else if (id === 2) {
+                state.v2 = (state.v2 + 10) % 105;
+                state.v3 = (state.v3 - 5);
+                if (state.v3 < 0) state.v3 = 100;
+            } else if (id === 3) {
+                state.v3 = (state.v3 + 10) % 105;
+                state.v1 = (state.v1 - 5);
+                if (state.v1 < 0) state.v1 = 100;
+            }
+            render();
+            check();
+        }
+
+        function render() {
+            [1,2,3].forEach(i => {
+                const bar = document.getElementById(`bar-${i}`);
+                const val = state[`v${i}`];
+                bar.style.height = val + '%';
+                // Highlight se estiver na zona alvo (entre 40% e 60%)
+                if (val >= 42 && val <= 58) {
+                    bar.style.background = '#fff';
+                    bar.style.boxShadow = '0 0 20px #fff';
+                } else {
+                    bar.style.background = '';
+                    bar.style.boxShadow = '';
+                }
+            });
+        }
+
+        function check() {
+            const ok = (v) => v >= 42 && v <= 58;
+            if (ok(state.v1) && ok(state.v2) && ok(state.v3)) {
+                document.getElementById('status-led').innerHTML = `
+                    <span class="text-[8px] text-green-500 font-bold">ESTÁVEL</span>
+                    <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                `;
+                setTimeout(() => {
+                    document.getElementById('win-ui').classList.remove('hidden');
+                }, 600);
+            }
+        }
+
+        function finalizar() {
+            window.parent.postMessage({ 
+                tipo: 'puzzleResolvido', 
+                portal: 'biodome' 
+            }, '*');
+        }
+
+        render();
+    </script>
+</body>
+</html>
