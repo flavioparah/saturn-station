@@ -40,24 +40,19 @@
             max-width: 500px;
             padding: 40px 20px;
             background: linear-gradient(135deg, var(--iron) 0%, #111 50%, var(--iron) 100%);
-            background-size: 4px 4px; /* Simula grão do metal */
+            background-size: 4px 4px;
             border: 4px solid #3a3a3c;
             border-radius: 10px;
-            box-shadow: 
-                0 0 50px rgba(0,0,0,1),
-                inset 2px 2px 5px rgba(255,255,255,0.1),
-                inset -2px -2px 5px rgba(0,0,0,0.5);
+            box-shadow: 0 0 50px rgba(0,0,0,1), inset 2px 2px 5px rgba(255,255,255,0.1);
             display: flex;
             flex-direction: column;
             align-items: center;
             z-index: 1;
         }
 
-        /* PARAFUSOS */
         .screw {
             position: absolute;
-            width: 15px;
-            height: 15px;
+            width: 15px; height: 15px;
             background: #3a3a3c;
             border-radius: 50%;
             box-shadow: inset 2px 2px 2px rgba(0,0,0,0.5);
@@ -75,60 +70,62 @@
         .bottom-left { bottom: 15px; left: 15px; }
         .bottom-right { bottom: 15px; right: 15px; }
 
-        /* PAINEL DIGITAL (TELA) */
         .digital-screen {
             position: relative;
             width: 100%;
             background: var(--glass);
             border: 10px solid #111;
             border-radius: 5px;
-            padding: 20px;
-            box-shadow: inset 0 0 20px rgba(0,255,100,0.1);
+            padding: 30px 20px;
+            box-shadow: inset 0 0 30px rgba(0,255,100,0.1);
             overflow: hidden;
             margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
         }
 
-        /* EFEITO DE SCANLINE */
+        /* Efeito de Scanline */
         .digital-screen::before {
-            content: " ";
+            content: "";
             position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
-            background-size: 100% 4px, 3px 100%;
+            top:0; left:0; right:0; bottom:0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            z-index: 20;
             pointer-events: none;
         }
 
-        /* HEADER */
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            z-index: 3;
+        .header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            z-index: 21;
         }
-
+        
         .title {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 900;
             color: var(--locked);
             letter-spacing: 3px;
             text-shadow: 0 0 10px var(--locked);
-            animation: flicker 2s infinite;
-        }
-
-        @keyframes flicker {
-            0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
-            20%, 24%, 55% { opacity: 0.7; }
+            margin: 0;
+            transition: color 0.5s, text-shadow 0.5s;
         }
 
         .subtitle {
             font-family: 'Rajdhani', sans-serif;
-            font-size: 12px;
-            color: #4ade80;
-            opacity: 0.8;
-            margin-top: 5px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--neon); /* Subtítulo em verde */
+            text-shadow: 0 0 5px var(--neon-dim);
+            opacity: 0.9;
+            margin-top: 8px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
-        /* PUZZLE AREA */
         .lock-container {
             position: relative;
             width: 260px;
@@ -139,23 +136,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            z-index: 10;
         }
 
         .ring {
             position: absolute;
             border-radius: 50%;
-            border: 2px solid rgba(74, 222, 128, 0.1);
+            border: 2px solid rgba(74, 222, 128, 0.05);
             cursor: pointer;
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s;
             display: flex;
             justify-content: center;
         }
 
-        .ring:hover {
-            border-color: rgba(74, 222, 128, 0.4);
-            background: rgba(74, 222, 128, 0.02);
-        }
+        .ring:hover { border-color: var(--neon-dim); }
 
         .marker {
             position: absolute;
@@ -164,16 +159,13 @@
             border-radius: 2px;
             box-shadow: 0 0 8px var(--locked);
             top: -5px;
+            height: 35px;
+            transition: background 0.5s, box-shadow 0.5s;
         }
 
         #ring-outer { width: 240px; height: 240px; }
-        #ring-outer .marker { height: 35px; }
-
         #ring-middle { width: 170px; height: 170px; }
-        #ring-middle .marker { height: 35px; }
-
         #ring-inner { width: 100px; height: 100px; }
-        #ring-inner .marker { height: 35px; }
 
         .core {
             position: absolute;
@@ -182,26 +174,18 @@
             border: 2px solid var(--locked);
             border-radius: 50%;
             box-shadow: 0 0 10px var(--locked);
-            z-index: 10;
+            z-index: 15;
+            transition: all 0.5s;
         }
 
-        /* SUCCESS STATE */
-        body.solved .title {
-            color: var(--neon);
-            text-shadow: 0 0 15px var(--neon);
-            animation: none;
-        }
-        body.solved .marker, body.solved .core {
-            background: var(--neon);
-            box-shadow: 0 0 15px var(--neon);
-            border-color: #fff;
-        }
-        body.solved .ring { pointer-events: none; }
+        /* ESTADO RESOLVIDO */
+        body.solved .title { color: var(--neon); text-shadow: 0 0 15px var(--neon); }
+        body.solved .marker, body.solved .core { background: var(--neon); border-color: #fff; box-shadow: 0 0 15px var(--neon); }
+        body.solved .ring { border-color: rgba(74, 222, 128, 0.2); pointer-events: none; }
 
-        /* BOTÃO TERMINAL */
         #btn-enter {
             margin-top: 30px;
-            padding: 12px 25px;
+            padding: 15px 35px;
             background: #000;
             border: 2px solid var(--neon);
             color: var(--neon);
@@ -210,21 +194,18 @@
             font-size: 14px;
             letter-spacing: 2px;
             cursor: pointer;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.4s;
-            box-shadow: 0 0 10px var(--neon-dim);
+            display: none;
+            transition: 0.3s;
+            z-index: 30;
         }
 
-        body.solved #btn-enter {
-            opacity: 1;
-            visibility: visible;
-        }
+        body.solved #btn-enter { display: block; animation: pulse 1.5s infinite; }
+        #btn-enter:hover { background: var(--neon); color: #000; box-shadow: 0 0 20px var(--neon); }
 
-        #btn-enter:hover {
-            background: var(--neon);
-            color: #000;
-            box-shadow: 0 0 20px var(--neon);
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0px var(--neon); }
+            50% { transform: scale(1.05); box-shadow: 0 0 20px var(--neon); }
+            100% { transform: scale(1); box-shadow: 0 0 0px var(--neon); }
         }
     </style>
 </head>
@@ -239,98 +220,95 @@
         <div class="digital-screen">
             <div class="header">
                 <div class="title" id="status-title">SYSTEM LOCKED</div>
-                <div class="subtitle" id="status-sub">ALINHAR CONDUÍTES DE NÚCLEO</div>
+                <div class="subtitle">INTERDEPENDÊNCIA MAGNÉTICA ATIVA</div>
             </div>
 
             <div class="lock-container">
-                <div class="ring" id="ring-outer" onclick="rotateRing('outer')">
+                <div class="ring" id="ring-outer" onclick="rotate('outer')">
                     <div class="marker"></div>
                 </div>
-                <div class="ring" id="ring-middle" onclick="rotateRing('middle')">
+                <div class="ring" id="ring-middle" onclick="rotate('middle')">
                     <div class="marker"></div>
                 </div>
-                <div class="ring" id="ring-inner" onclick="rotateRing('inner')">
+                <div class="ring" id="ring-inner" onclick="rotate('inner')">
                     <div class="marker"></div>
                 </div>
-                <div class="core" id="core"></div>
+                <div class="core"></div>
             </div>
         </div>
 
-        <button id="btn-enter" onclick="enterShipyard()">ACESSAR ESTALEIRO.HTML</button>
+        <button id="btn-enter" onclick="completeOverride()">ACESSAR ESTALEIRO</button>
     </div>
 
     <script>
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
-        function playBeep(freq, type, duration, vol) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        function beep(f, d) {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.frequency.value = f;
+                g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + d);
+                o.connect(g); g.connect(audioCtx.destination);
+                o.start(); o.stop(audioCtx.currentTime + d);
+            } catch(e) {}
         }
 
+        // Posições iniciais aleatórias (múltiplos de 45)
         const state = {
-            outer: 90,
-            middle: 225,
-            inner: 135
+            outer: (Math.floor(Math.random() * 7) + 1) * 45,
+            middle: (Math.floor(Math.random() * 7) + 1) * 45,
+            inner: (Math.floor(Math.random() * 7) + 1) * 45
         };
 
-        const rings = {
-            outer: document.getElementById('ring-outer'),
-            middle: document.getElementById('ring-middle'),
-            inner: document.getElementById('ring-inner')
-        };
+        function rotate(ring) {
+            if (document.body.classList.contains('solved')) return;
+            beep(300, 0.1);
+            
+            // Complexidade: Um anel move o outro de forma encadeada
+            if (ring === 'outer') {
+                state.outer += 45;
+                state.middle += 45;
+            } else if (ring === 'middle') {
+                state.middle += 45;
+                state.inner += 45;
+            } else if (ring === 'inner') {
+                state.inner += 45;
+                state.outer += 45;
+            }
 
-        let isSolved = false;
-
-        function updateVisuals() {
-            rings.outer.style.transform = `rotate(${state.outer}deg)`;
-            rings.middle.style.transform = `rotate(${state.middle}deg)`;
-            rings.inner.style.transform = `rotate(${state.inner}deg)`;
+            render();
+            check();
         }
 
-        function rotateRing(ringName) {
-            if (isSolved) return;
-            playBeep(400, 'sine', 0.1, 0.1);
-            state[ringName] += 45;
-            updateVisuals();
-            checkSolution();
+        function render() {
+            document.getElementById('ring-outer').style.transform = `rotate(${state.outer}deg)`;
+            document.getElementById('ring-middle').style.transform = `rotate(${state.middle}deg)`;
+            document.getElementById('ring-inner').style.transform = `rotate(${state.inner}deg)`;
         }
 
-        function checkSolution() {
-            const outOk = (state.outer % 360) === 0;
-            const midOk = (state.middle % 360) === 0;
-            const inOk = (state.inner % 360) === 0;
+        function check() {
+            // Verifica se todos estão em 0 ou múltiplos de 360
+            const isSolved = (state.outer % 360 === 0 && 
+                              state.middle % 360 === 0 && 
+                              state.inner % 360 === 0);
 
-            if (outOk && midOk && inOk) {
-                isSolved = true;
-                setTimeout(triggerSuccess, 400);
+            if (isSolved) {
+                document.body.classList.add('solved');
+                document.getElementById('status-title').innerText = "ACCESS GRANTED";
+                beep(600, 0.5);
             }
         }
 
-        function triggerSuccess() {
-            playBeep(600, 'sine', 0.5, 0.2);
-            setTimeout(() => playBeep(800, 'sine', 0.8, 0.2), 150);
-            
-            document.body.classList.add('solved');
-            document.getElementById('status-title').innerText = "ACCESS GRANTED";
-            document.getElementById('status-sub').innerText = "ESTALEIRO PRONTO PARA ENTRADA";
+        function completeOverride() {
+            beep(800, 0.2);
+            // Comunicação com o index.html
+            window.parent.postMessage('unlock_shipyard', '*');
         }
 
-        function enterShipyard() {
-            playBeep(1000, 'square', 0.1, 0.05);
-            setTimeout(() => {
-                // Redireciona para o arquivo conforme solicitado
-                window.location.href = "estaleiro.html";
-            }, 200);
-        }
-
-        updateVisuals();
+        // Inicialização
+        render();
     </script>
 </body>
 </html>
