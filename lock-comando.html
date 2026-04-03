@@ -234,17 +234,7 @@
     <script>
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
-        const buttonFrequencies = [
-            261.63, // C4
-            293.66, // D4
-            329.63, // E4
-            349.23, // F4
-            392.00, // G4
-            440.00, // A4
-            493.88, // B4
-            523.25, // C5
-            587.33  // D5
-        ];
+        const buttonFrequencies = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33];
 
         function playTone(freq, duration = 0.2, type = 'sine') {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -311,7 +301,6 @@
             sequence = [];
             const availableIds = [0, 1, 2, 3, 4, 5, 6, 7, 8];
             const length = currentStage + 2;
-            
             for (let i = 0; i < length; i++) {
                 const filterOptions = availableIds.filter(id => id !== sequence[sequence.length - 1]);
                 const randomIndex = Math.floor(Math.random() * filterOptions.length);
@@ -329,7 +318,6 @@
         submitPassBtn.onclick = () => verificarSenha();
 
         function verificarSenha() {
-            // Senha alterada para "only"
             if (passInput.value.toLowerCase().trim() === "only") {
                 sounds.win();
                 document.getElementById('S5').classList.add('active');
@@ -395,10 +383,11 @@
             }
         });
 
+        // AQUI ESTÁ A CORREÇÃO: puzzleId alterado para portal e batendo com "comando"
         function comunicarIndex() {
             window.parent.postMessage({ 
                 tipo: 'puzzleResolvido', 
-                puzzleId: 'comando' 
+                portal: 'comando' 
             }, '*');
         }
     </script>
