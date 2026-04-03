@@ -307,8 +307,20 @@
             mainMsg.innerText = "REPRODUZIR AGORA";
         }
 
+        function generateNewSequence() {
+            sequence = [];
+            const availableIds = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+            const length = currentStage + 2;
+            
+            for (let i = 0; i < length; i++) {
+                const filterOptions = availableIds.filter(id => id !== sequence[sequence.length - 1]);
+                const randomIndex = Math.floor(Math.random() * filterOptions.length);
+                sequence.push(filterOptions[randomIndex]);
+            }
+        }
+
         function initStage() {
-            sequence = Array.from({length: currentStage + 2}, () => Math.floor(Math.random() * 9));
+            generateNewSequence();
             stageInfo.innerText = `Estágio ${currentStage}/5`;
             playSequence();
         }
@@ -317,8 +329,8 @@
         submitPassBtn.onclick = () => verificarSenha();
 
         function verificarSenha() {
-            // Nova senha definida como "saturnine"
-            if (passInput.value.toLowerCase().trim() === "saturnine") {
+            // Senha alterada para "only"
+            if (passInput.value.toLowerCase().trim() === "only") {
                 sounds.win();
                 document.getElementById('S5').classList.add('active');
                 document.getElementById('password-container').classList.add('hidden');
@@ -343,9 +355,9 @@
                 if (userSequence[userSequence.length - 1] !== sequence[userSequence.length - 1]) {
                     canClick = false; 
                     sounds.error();
-                    mainMsg.innerText = "ERRO DE SINCRONIA";
+                    mainMsg.innerText = "ERRO: NOVO PADRÃO GERADO";
                     await new Promise(r => setTimeout(r, 1200));
-                    playSequence();
+                    initStage();
                     return;
                 }
 
