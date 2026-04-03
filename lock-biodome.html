@@ -195,7 +195,7 @@
             <div id="game-view" class="flow-container">
                 <div class="track"><div id="bar-1" class="bar" style="height: 15%;"></div><div class="target-zone"></div></div>
                 <div class="track"><div id="bar-2" class="bar" style="height: 85%;"></div><div class="target-zone"></div></div>
-                <div class="track"><div id="bar-3" class="bar" style="height: 40%;"></div><div class="track-info"></div><div class="target-zone"></div></div>
+                <div class="track"><div id="bar-3" class="bar" style="height: 40%;"></div><div class="target-zone"></div></div>
                 <div class="track"><div id="bar-4" class="bar" style="height: 60%;"></div><div class="target-zone"></div></div>
             </div>
 
@@ -234,7 +234,7 @@
         const state = { v1: 15, v2: 85, v3: 40, v4: 60 };
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // Sistema de Feedback Auditivo
+        // Sistema de Feedback Auditivo Avançado
         function playTone(freq, type, volume, duration) {
             try {
                 if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -255,20 +255,21 @@
             } catch(e) {}
         }
 
+        // Melodia de sucesso ao resolver o puzzle
         function playSuccessSequence() {
-            const now = audioCtx.currentTime;
-            const freqs = [523.25, 659.25, 783.99, 1046.50]; // Acorde C Maior
+            const freqs = [523.25, 659.25, 783.99, 1046.50]; // Acorde C Maior (ascendente)
             freqs.forEach((f, i) => {
-                setTimeout(() => playTone(f, 'sine', 0.1, 0.5), i * 150);
+                setTimeout(() => playTone(f, 'sine', 0.1, 0.6), i * 120);
             });
         }
 
         function adjust(id) {
-            // Som do botão (clique mecânico)
-            playTone(150 + (id * 40), 'square', 0.05, 0.1);
+            // Feedback de clique individual por módulo
+            playTone(180 + (id * 30), 'triangle', 0.08, 0.15);
             
             const prevStates = { ...state };
 
+            // Mesma lógica de cruzamento de colunas do anterior
             if (id === 1) {
                 state.v1 = (state.v1 + 12) % 105;
                 state.v2 = (state.v2 + 8) % 105;
@@ -288,11 +289,11 @@
 
             render();
             
-            // Som de "Alinhamento" se uma barra entrou na zona
+            // Som de "Alinhamento Perfeito" por coluna
             const isOk = (v) => v >= 42 && v <= 58;
             [1,2,3,4].forEach(i => {
                 if (isOk(state[`v${i}`]) && !isOk(prevStates[`v${i}`])) {
-                    playTone(880, 'sine', 0.03, 0.3); // Nota aguda de sucesso parcial
+                    playTone(880, 'sine', 0.05, 0.3); // Nota pura de confirmação
                 }
             });
 
@@ -305,6 +306,7 @@
                 const val = state[`v${i}`];
                 bar.style.height = val + '%';
                 
+                // Realce visual quando está no alvo
                 if (val >= 42 && val <= 58) {
                     bar.style.background = '#fff';
                     bar.style.boxShadow = '0 0 15px #fff';
@@ -318,8 +320,10 @@
         function check() {
             const ok = (v) => v >= 42 && v <= 58;
             if (ok(state.v1) && ok(state.v2) && ok(state.v3) && ok(state.v4)) {
+                // Desativa botões
                 document.querySelectorAll('.metal-btn').forEach(b => b.disabled = true);
                 
+                // Atualiza LED de status
                 document.getElementById('led-text').innerText = "SINCRONIZADO";
                 document.getElementById('led-text').classList.replace('text-yellow-600', 'text-green-500');
                 document.getElementById('led-bulb').classList.replace('bg-yellow-600', 'bg-green-500');
@@ -331,12 +335,13 @@
                     document.getElementById('game-view').classList.add('hidden');
                     document.getElementById('game-subtext').classList.add('hidden');
                     document.getElementById('success-view').classList.remove('hidden');
-                }, 800);
+                }, 850);
             }
         }
 
         function finalizar() {
             playTone(1200, 'sine', 0.1, 0.1);
+            // IMPORTANTE: O puzzleId deve bater com o definido no index.html ("biodome")
             window.parent.postMessage({ 
                 tipo: 'puzzleResolvido', 
                 puzzleId: 'biodome' 
