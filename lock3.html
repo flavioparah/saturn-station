@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal de Autenticação Avalon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #0a0a0c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+            color: #00f2ff;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .ship-hull {
+            width: 95%;
+            max-width: 700px;
+            background: linear-gradient(135deg, #2c2c2e 0%, #1a1a1c 100%);
+            border: 6px solid #3a3a3c;
+            border-radius: 12px;
+            padding: 40px;
+            position: relative;
+            box-shadow: 
+                inset 0 0 60px rgba(0,0,0,0.9),
+                0 30px 60px rgba(0,0,0,0.9);
+        }
+
+        .screw {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: radial-gradient(circle at 30% 30%, #555, #111);
+            border-radius: 50%;
+            box-shadow: 3px 3px 6px rgba(0,0,0,0.6);
+        }
+        .screw::after {
+            content: '';
+            position: absolute;
+            width: 70%;
+            height: 3px;
+            background: #222;
+            top: 45%;
+            left: 15%;
+            transform: rotate(45deg);
+        }
+        .tl { top: 15px; left: 15px; }
+        .tr { top: 15px; right: 15px; }
+        .bl { bottom: 15px; left: 15px; }
+        .br { bottom: 15px; right: 15px; }
+
+        .digital-display {
+            background: #010808;
+            border: 12px solid #111;
+            border-radius: 8px;
+            box-shadow: inset 0 0 30px rgba(0, 242, 255, 0.15);
+            padding: 30px;
+            position: relative;
+            min-height: 520px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .digital-display::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(rgba(0, 242, 255, 0.02) 0px, transparent 2px, transparent 4px);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .stage-light {
+            width: 25px;
+            height: 10px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            transition: all 0.4s;
+        }
+        .stage-light.active {
+            background: #00f2ff;
+            box-shadow: 0 0 15px #00f2ff;
+        }
+
+        .grid-button {
+            aspect-ratio: 1;
+            background: #080808;
+            border: 2px solid #1a1a1a;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: all 0.1s;
+            position: relative;
+        }
+        .grid-button.highlight-cpu {
+            background: #00f2ff !important;
+            color: #000 !important;
+            box-shadow: 0 0 30px #00f2ff;
+            border-color: #fff;
+            z-index: 20;
+        }
+        .grid-button.highlight-user {
+            background: #008888 !important;
+            color: #fff !important;
+            box-shadow: 0 0 15px #008888;
+            border-color: #00f2ff;
+            z-index: 20;
+        }
+
+        .neon-glow {
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.7);
+        }
+
+        .terminal-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+        }
+
+        .password-input {
+            background: #000;
+            border: 2px solid #004444;
+            color: #00f2ff;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+            font-size: 2.5rem;
+            letter-spacing: 15px;
+            width: 250px;
+            outline: none;
+        }
+        .password-input:focus {
+            border-color: #00f2ff;
+        }
+
+        .hidden { display: none; }
+
+        .btn-action {
+            display: inline-block;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            padding: 1rem;
+            border: 2px solid #00f2ff;
+            background: rgba(0, 242, 255, 0.1);
+            color: #00f2ff;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+        }
+        .btn-action:hover {
+            background: #00f2ff;
+            color: #000;
+            box-shadow: 0 0 20px #00f2ff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ship-hull">
+        <div class="screw tl"></div>
+        <div class="screw tr"></div>
+        <div class="screw bl"></div>
+        <div class="screw br"></div>
+
+        <div class="flex justify-between items-end mb-8 border-b border-gray-800 pb-4 px-2">
+            <div>
+                <h1 class="text-xl font-bold tracking-widest text-gray-400">AVALON MEM-CORE</h1>
+                <p class="terminal-text text-gray-600 uppercase">Acesso Nível 4 Requerido</p>
+            </div>
+            <div class="flex gap-2">
+                <div id="S1" class="stage-light"></div>
+                <div id="S2" class="stage-light"></div>
+                <div id="S3" class="stage-light"></div>
+                <div id="S4" class="stage-light"></div>
+            </div>
+        </div>
+
+        <div class="digital-display">
+            
+            <!-- SEÇÃO DE MEMÓRIA -->
+            <div id="game-container" class="text-center">
+                <div id="stage-info" class="mb-2 text-cyan-500 font-bold tracking-widest uppercase">Estágio 1/4</div>
+                <h2 id="main-msg" class="text-cyan-400 neon-glow mb-8 uppercase text-sm">Inicie a Sincronização</h2>
+
+                <div class="grid grid-cols-3 gap-4 max-w-[300px] mx-auto mb-10">
+                    <div data-id="0" class="grid-button">01</div>
+                    <div data-id="1" class="grid-button">02</div>
+                    <div data-id="2" class="grid-button">03</div>
+                    <div data-id="3" class="grid-button">04</div>
+                    <div data-id="4" class="grid-button">05</div>
+                    <div data-id="5" class="grid-button">06</div>
+                    <div data-id="6" class="grid-button">07</div>
+                    <div data-id="7" class="grid-button">08</div>
+                    <div data-id="8" class="grid-button">09</div>
+                </div>
+
+                <!-- LINK DE NAVEGAÇÃO: ao clicar em Abrir Porta redireciona para a próxima cena -->
+                <a href="habitat.html" id="openDoorBtn" class="btn-action" style="display:none; margin-top: 0.5rem;">
+                    Abrir Porta
+                </a>
+
+                <button id="startBtn" class="px-10 py-4 border-2 border-cyan-500 text-cyan-400 font-bold hover:bg-cyan-500 hover:text-black transition-all uppercase tracking-widest text-xs">
+                    Iniciar
+                </button>
+            </div>
+            </div>
+
+        <!-- RODAPÉ -->
+        <div class="mt-6 flex justify-between terminal-text opacity-40 px-2 border-t border-gray-800 pt-4">
+            <div>
+                <span class="block text-[8px] text-gray-500">REF: DOC-AVALON-TECH-MANUAL</span>
+                <!-- Senha atualizada para 2026 na dica visual -->
+                <span class="text-[9px] text-gray-400">REGISTRO DE VOO / CÓDIGO DE ACESSO: <span class="text-cyan-500 font-bold">20..</span></span>
+            </div>
+            <div class="text-right">
+                <span class="block">SERIAL: 882-SYNC</span>
+                <span class="block">OS: AVALON-RT-CORE</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(freq, type = 'sine', duration = 0.1) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const sounds = {
+            highlight: (i) => playTone(250 + (i * 30), 'square', 0.25),
+            click: () => playTone(600, 'sine', 0.08),
+            error: () => playTone(80, 'sawtooth', 0.5),
+            stageUp: () => {
+                playTone(400, 'sine', 0.1);
+                setTimeout(() => playTone(600, 'sine', 0.2), 100);
+            }
+        };
+
+        let currentStage = 1;
+        let sequence = [];
+        let userSequence = [];
+        let isPlaying = false;
+        let canClick = false;
+
+        const mainMsg = document.getElementById('main-msg');
+        const stageInfo = document.getElementById('stage-info');
+        const startBtn = document.getElementById('startBtn');
+        const openDoorBtn = document.getElementById('openDoorBtn');
+        const buttons = document.querySelectorAll('.grid-button');
+
+        const stageConfigs = {
+            1: { length: 3, speed: 700 },
+            2: { length: 4, speed: 600 },
+            3: { length: 5, speed: 500 },
+            4: { length: 6, speed: 400 }
+        };
+
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        async function playSequence() {
+            if (isPlaying) return;
+            isPlaying = true;
+            canClick = false;
+            userSequence = [];
+            startBtn.style.visibility = 'hidden';
+            mainMsg.innerText = "Sincronizando...";
+
+            await wait(1000);
+
+            const config = stageConfigs[currentStage];
+            for (let id of sequence) {
+                const btn = document.querySelector(`[data-id="${id}"]`);
+                btn.classList.add('highlight-cpu');
+                sounds.highlight(id);
+                await wait(config.speed);
+                btn.classList.remove('highlight-cpu');
+                await wait(250);
+            }
+
+            isPlaying = false;
+            canClick = true;
+            mainMsg.innerText = "Sua Vez";
+        }
+
+        function generateSequence() {
+            const config = stageConfigs[currentStage];
+            sequence = [];
+            for (let i = 0; i < config.length; i++) {
+                sequence.push(Math.floor(Math.random() * 9));
+            }
+        }
+
+        function initStage() {
+            generateSequence();
+            stageInfo.innerText = `Estágio ${currentStage}/4`;
+            playSequence();
+        }
+
+        startBtn.onclick = () => {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            initStage();
+        };
+
+        // Enter aciona o botão visível (Abrir Porta ou Iniciar)
+        window.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (openDoorBtn.style.display !== 'none') {
+                openDoorBtn.click();
+            } else if (startBtn.style.visibility !== 'hidden') {
+                startBtn.click();
+            }
+        });
+
+        buttons.forEach(btn => {
+            btn.onclick = async () => {
+                if (!canClick || isPlaying) return;
+
+                const id = parseInt(btn.dataset.id);
+                userSequence.push(id);
+
+                btn.classList.add('highlight-user');
+                sounds.click();
+
+                setTimeout(() => btn.classList.remove('highlight-user'), 150);
+
+                if (userSequence[userSequence.length - 1] !== sequence[userSequence.length - 1]) {
+                    canClick = false;
+                    sounds.error();
+                    mainMsg.innerText = "ERRO - RESETANDO...";
+                    userSequence = [];
+                    await wait(1500);
+                    isPlaying = false;
+                    generateSequence();
+                    playSequence();
+                    return;
+                }
+
+                if (userSequence.length === sequence.length) {
+                    canClick = false;
+                    document.getElementById(`S${currentStage}`).classList.add('active');
+
+                    if (currentStage < 4) {
+                        sounds.stageUp();
+                        currentStage++;
+                        mainMsg.innerText = "SINC-OK";
+                        await wait(1000);
+                        initStage();
+                    } else {
+                        sounds.stageUp();
+                        await wait(800);
+                        showSuccess();
+                    }
+                }
+            };
+        });
+
+        function showSuccess() {
+            mainMsg.innerText = "ACESSO CONCEDIDO";
+            mainMsg.style.color = "#4ade80";
+            mainMsg.style.textShadow = "0 0 10px rgba(74,222,128,0.7)";
+            startBtn.style.display = 'none';
+            openDoorBtn.style.display = 'inline-block';
+            openDoorBtn.focus();
+        }
+    </script>
+</body>
+</html>
+
