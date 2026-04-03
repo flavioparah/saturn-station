@@ -24,16 +24,39 @@
             touch-action: none;
         }
 
+        /* Chapa de Ferro ao fundo */
         .steel-chassis {
             position: relative;
             width: 90vw;
             max-width: 450px;
-            background: linear-gradient(135deg, #3a3a3c 0%, #1a1a1c 100%);
+            background: 
+                url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Ffilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+                linear-gradient(135deg, #3a3a3c 0%, #1a1a1c 100%);
+            background-blend-mode: overlay;
             border: 4px solid #444;
             border-radius: 12px;
-            padding: 30px 20px;
-            box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+            padding: 40px 25px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.9), inset 0 0 20px rgba(255,255,255,0.05);
         }
+
+        /* Parafusos nos cantos */
+        .screw {
+            position: absolute;
+            width: 16px; height: 16px;
+            background: radial-gradient(circle at 30% 30%, #555, #111);
+            border-radius: 50%;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .screw::after {
+            content: '';
+            position: absolute; width: 70%; height: 2px;
+            background: #222; top: 45%; left: 15%;
+            transform: rotate(45deg);
+        }
+        .tl { top: 12px; left: 12px; }
+        .tr { top: 12px; right: 12px; }
+        .bl { bottom: 12px; left: 12px; }
+        .br { bottom: 12px; right: 12px; }
 
         .digital-screen {
             background: #020602;
@@ -46,6 +69,7 @@
             justify-content: center;
             align-items: center;
             position: relative;
+            box-shadow: inset 0 0 30px rgba(34, 197, 94, 0.1);
         }
 
         .flow-container {
@@ -80,27 +104,28 @@
             width: 100%;
             height: 10%;
             background: rgba(255, 255, 255, 0.1);
-            border-top: 1px dashed white;
-            border-bottom: 1px dashed white;
+            border-top: 1px dashed rgba(255,255,255,0.4);
+            border-bottom: 1px dashed rgba(255,255,255,0.4);
             pointer-events: none;
         }
 
         .metal-btn {
             background: linear-gradient(180deg, #444, #222);
             border: 1px solid #111;
-            border-bottom: 4px solid #000;
-            color: #888;
+            border-bottom: 5px solid #000;
+            color: #aaa;
             padding: 15px 5px;
             font-size: 10px;
             font-weight: 900;
             cursor: pointer;
             font-family: 'JetBrains Mono', monospace;
             text-transform: uppercase;
+            transition: all 0.1s;
         }
 
         .metal-btn:active {
             border-bottom-width: 1px;
-            transform: translateY(3px);
+            transform: translateY(4px);
             color: var(--bio-green);
         }
 
@@ -121,8 +146,14 @@
 <body>
 
     <div class="steel-chassis">
+        <div class="screw tl"></div>
+        <div class="screw tr"></div>
+        <div class="screw bl"></div>
+        <div class="screw br"></div>
+
         <div class="mb-4 text-center">
             <h1 class="text-[10px] tracking-[0.3em] text-gray-400 uppercase font-bold">BIO-SYSTEMS CALIBRATION</h1>
+            <p class="text-[8px] text-green-900 font-mono mt-1">CORE STATUS: STABLE</p>
         </div>
 
         <div class="digital-screen">
@@ -134,7 +165,7 @@
             </div>
 
             <div id="success-view" class="success-overlay hidden">
-                <div class="text-green-500 text-xl font-bold mb-4 tracking-tighter">SINC. COMPLETA</div>
+                <div class="text-green-500 text-xl font-bold mb-4 tracking-tighter animate-pulse">SINC. COMPLETA</div>
                 <button onclick="finalizarPuzzle()" class="px-6 py-3 bg-green-600 hover:bg-green-500 text-black font-black text-[10px] uppercase tracking-widest transition-colors">
                     LIBERAR TRAVA
                 </button>
@@ -150,15 +181,42 @@
     </div>
 
     <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSynth(freq, dur, type = 'sine', vol = 0.1) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + dur);
+        }
+
+        const sounds = {
+            adjust: () => playSynth(200 + Math.random() * 100, 0.1, 'square', 0.05),
+            success: () => {
+                playSynth(440, 0.2);
+                setTimeout(() => playSynth(880, 0.4), 150);
+            }
+        };
+
         // Estado inicial das barras de fluxo
         const niveis = { v1: 20, v2: 80, v3: 35, v4: 65 };
 
         function ajustar(id) {
-            // Lógica de interdependência: cada botão afeta a sua barra e a seguinte
+            sounds.adjust();
+            
+            // Lógica de interdependência
             if (id === 1) { niveis.v1 = (niveis.v1 + 15) % 100; niveis.v2 = (niveis.v2 + 5) % 100; }
             if (id === 2) { niveis.v2 = (niveis.v2 + 15) % 100; niveis.v3 = (niveis.v3 + 5) % 100; }
             if (id === 3) { niveis.v3 = (niveis.v3 + 15) % 100; niveis.v4 = (niveis.v4 + 5) % 100; }
             if (id === 4) { niveis.v4 = (niveis.v4 + 15) % 100; niveis.v1 = (niveis.v1 + 5) % 100; }
+            
             renderizar();
         }
 
@@ -168,7 +226,6 @@
                 const val = niveis[`v${i}`];
                 el.style.height = val + '%';
                 
-                // Realce visual se estiver dentro da margem de sucesso (45% a 55%)
                 if (val >= 45 && val <= 55) {
                     el.style.background = '#fff';
                     el.style.boxShadow = '0 0 20px #fff';
@@ -178,17 +235,15 @@
                 }
             }
 
-            // Verifica se todos os fluxos estão alinhados ao centro
             const resolvido = [niveis.v1, niveis.v2, niveis.v3, niveis.v4].every(v => v >= 45 && v <= 55);
             if (resolvido) {
+                sounds.success();
                 document.getElementById('success-view').classList.remove('hidden');
             }
         }
 
         function finalizarPuzzle() {
-            // Comunicação com o index.html:
-            // e.data.tipo deve ser 'puzzleResolvido'
-            // e.data.portal deve ser 'biodome' (conforme o puzzleId no teu index)
+            playSynth(1200, 0.1);
             window.parent.postMessage({ 
                 tipo: 'puzzleResolvido', 
                 portal: 'biodome' 
