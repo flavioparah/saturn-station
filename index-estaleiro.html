@@ -387,6 +387,10 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') goToNextScene();
+    });
+
     window.onload = startApp;
 </script>
 </body>
